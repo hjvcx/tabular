@@ -2,14 +2,18 @@ from docopt import docopt
 
 usage = '''
 Usage:
-main.py (-o | --output-style) <string>
+    main.py [options] [input [output]]
+
+Options:
+    -o <style>, --output-style <style>      Output style.
+    -i --input-separator                    Input separator.
 '''
+
 
 def output_style(string):
     print(string)
 
 if __name__ == "__main__":
-    args = docopt(usage)
+    args = docopt(usage, options_first=True)
 
-    if args['-o'] or args['--output-style']:
-        output_style(args['<string>'])
+    print(args)
