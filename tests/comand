@@ -1,0 +1,1 @@
+tabular -i ';' -n '^' -f r1l2l4r5 -o a persons.csv persons.tab
