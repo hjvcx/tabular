@@ -18,6 +18,7 @@ Options:
 from docopt import docopt
 from os import path
 import pprint
+import sys
 
 # Pretty print function
 def pretty_printer(data):
@@ -29,7 +30,11 @@ if __name__ == "__main__":
     args = docopt(__doc__, options_first=True)
     pretty_printer(args)
 
-    # Working with options and parameters using conditions
+    # Working with options and parameters using conditions   
+    if args['--version']:
+        print('tabular v0.0.1')
+        sys.exit()
+        
     if args['<input>'] and path.isfile(args['<input>']):
         with open(args['<input>'], 'r') as f:
             print(f.read())
@@ -37,9 +42,13 @@ if __name__ == "__main__":
             input_text = f.read()
     elif args['<input>']:
         print(f'File \"{args["<input>"]}\" does not exist.')
+    else:
+        input_text = input()
 
     if args['<output>']:
         with open(args['<output>'], 'w+') as f:
             print(input_text)
             f.write(input_text) 
+    else:
+        print(input_text)
     
