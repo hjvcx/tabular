@@ -3,21 +3,31 @@ Usage:
     main.py [options] [<input> [<output>]]
 
 Options:
-    -o <style>, --output-style <style>      Output style.
-    -i --input-separator                    Input separator.
+    -o <style>, --output-style <style>          Defines style for columns.
+    -i <string>, --input-separator <string>     Defines characters being used as separators.
+    -s, --sticky-separators                     Multiple separators as one.
+    -t, --trim-empty                            Deletes empty fields at beginning and end of entries.
+    -n <string>, --names <string>               Defines names of columns (first character of string stands as separator).
+    -1, --first-line-header                     If enabled, makes first string perceived as header.
+    -f <string>, --fields <string>              Defines specification of output.
+    -L <number>, --lines-inspect <number>       Defines number of strings being counted before calculating field sizes.
+    -h, --help                                  Open this message.
+    -v, --version                               Version check and finish program execution.
 '''
 
 from docopt import docopt
 from os import path
+import pprint
 
-# Dummy function
-def output_style(string):
-    print(string)
+# Pretty print function
+def pretty_printer(data):
+    pp = pprint.PrettyPrinter()
+    pp.pprint(data)
 
 if __name__ == "__main__":
     # Getting parameters and options dictionary then print it (for understanding)
     args = docopt(__doc__, options_first=True)
-    print(args)
+    pretty_printer(args)
 
     # Working with options and parameters using conditions
     if args['<input>'] and path.isfile(args['<input>']):
