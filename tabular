@@ -1,0 +1,85 @@
+#!/usr/bin/python3
+'''
+Usage:
+    tabular [options] [<input> [<output>]]
+
+Options:
+    -o <style>, --output-style <style>          Defines style for columns. [default: uhC]
+    -i <string>, --input-separator <string>     Defines characters being used as separators. [default:  ]
+    -s, --sticky-separators                     Multiple separators as one. [default: True]
+    -t, --trim-empty                            Deletes empty fields at beginning and end of entries. 
+    -n <string>, --names <string>               Defines names of columns (first character of string stands as separator). 
+    -1, --first-line-header                     If enabled, makes first string perceived as header.
+    -f <string>, --fields <string>              Defines specification of output. [default: l0]
+    -L <number>, --lines-inspect <number>       Defines number of strings being counted before calculating field sizes. [default: 0]
+    -h, --help                                  Open this message.
+    -v, --version                               Version check and finish program execution.
+'''
+
+from docopt import docopt
+import pprint
+import sys
+import re
+
+# Pretty print function
+def pretty_printer(data):
+    pp = pprint.PrettyPrinter(stream=sys.stderr)
+    pp.pprint(data)
+
+def perr(message, exception=None):
+       if exception:
+           msg = f'{message}: {exception}'
+       else:
+           msg = message
+       print(msg, file=sys.stderr)
+
+def arguments_check(args, option):
+    exit_trigger = False
+    if option == '--output-style':
+        pattern = r'^[au]?[hH]?[cC]?[bB]?$'
+        matches = re.findall(pattern, args[option])
+        if not matches:
+            print(f'Invalid argument. ({option})', file=sys.stderr)
+            exit_trigger = True
+    
+    if exit_trigger:
+        sys.exit(1)
+
+def arg_parse():
+    # Getting parameters and options dictionary then print it (for understanding)
+    args = docopt(__doc__)
+    pretty_printer(args)
+
+    # Working with options and parameters using conditions   
+    if args['--output-style']:
+        arguments_check(args, '--output-style')
+
+    if args['--version']:
+        print('tabular v0.0.1')
+        sys.exit()
+        
+    try:
+        if args['<input>']:
+            input_stream = open(args['<input>'])
+        else:
+            input_stream = sys.stdin
+            print('Press Ctrl+D to finish entering data.')
+    except Exception as e:
+        perr('Cannot open input', e)
+        sys.exit(1)
+    input_data = input_stream.read()
+
+    try:
+        if args['<output>']:
+            output_stream = open(args['<output>'])
+        else:
+            output_stream = sys.stdout
+    except Exception as e:
+        perr('Cannot write output', e)
+        sys.exit(1)
+    output_stream.write(input_data)
+
+def main():
+    arg_parse()
+   
+main()
