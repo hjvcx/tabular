@@ -26,6 +26,9 @@ def pretty_printer(data):
     pp = pprint.PrettyPrinter(stream=sys.stderr)
     pp.pprint(data)
 
+def get_unique_characters(input_string):
+    return ''.join(sorted(set(input_string), key=input_string.index))
+
 def perr(message, exception=None):
        if exception:
            msg = f'{message}: {exception}'
@@ -37,6 +40,18 @@ def arguments_check(args, option):
     exit_trigger = False
     if option == '--output-style':
         pattern = r'^[au]?[hH]?[cC]?[bB]?$'
+        matches = re.findall(pattern, get_unique_characters(args[option]))
+        if not matches:
+            print(f'Invalid argument. ({option})', file=sys.stderr)
+            exit_trigger = True
+    elif option == '--fields':
+        pattern = r'^([lrjc]\d)+$'
+        matches = re.findall(pattern, args[option])
+        if not matches:
+            print(f'Invalid argument. ({option})', file=sys.stderr)
+            exit_trigger = True
+    elif option == '--lines-inspect':
+        pattern = r'^\d+$'
         matches = re.findall(pattern, args[option])
         if not matches:
             print(f'Invalid argument. ({option})', file=sys.stderr)
@@ -53,6 +68,12 @@ def arg_parse():
     # Working with options and parameters using conditions   
     if args['--output-style']:
         arguments_check(args, '--output-style')
+
+    if args['--fields']:
+        arguments_check(args, '--fields')
+
+    if args['--lines-inspect']:
+        arguments_check(args, '--lines-inspect')
 
     if args['--version']:
         print('tabular v0.0.1')
