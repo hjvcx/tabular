@@ -36,48 +36,40 @@ def perr(message, exception=None):
            msg = message
        print(msg, file=sys.stderr)
 
-def arguments_check(args, option):
-    exit_trigger = False
-    if option == '--output-style':
-        pattern = r'^[au]?[hH]?[cC]?[bB]?$'
-        matches = re.findall(pattern, get_unique_characters(args[option]))
-        if not matches:
-            print(f'Invalid argument. ({option})', file=sys.stderr)
-            exit_trigger = True
-    elif option == '--fields':
-        pattern = r'^([lrjc]\d)+$'
-        matches = re.findall(pattern, args[option])
-        if not matches:
-            print(f'Invalid argument. ({option})', file=sys.stderr)
-            exit_trigger = True
-    elif option == '--lines-inspect':
-        pattern = r'^\d+$'
-        matches = re.findall(pattern, args[option])
-        if not matches:
-            print(f'Invalid argument. ({option})', file=sys.stderr)
-            exit_trigger = True
-    
-    if exit_trigger:
-        sys.exit(1)
-
 def arg_parse():
     # Getting parameters and options dictionary then print it (for understanding)
     args = docopt(__doc__)
     pretty_printer(args)
+    exit_trigger = False
 
     # Working with options and parameters using conditions   
     if args['--output-style']:
-        arguments_check(args, '--output-style')
+        pattern = r'^[au]?[hH]?[cC]?[bB]?$'
+        matches = re.findall(pattern, args['--output-style'])
+        if not matches:
+            print(f'Invalid argument in option: --output-style. Example of correct use: --output-style uhC', file=sys.stderr)
+            exit_trigger = True
 
     if args['--fields']:
-        arguments_check(args, '--fields')
+        pattern = r'^([lrjc]\d+)+$'
+        matches = re.findall(pattern, args['--fields'])
+        if not matches:
+            print(f'Invalid argument in option: --fields. Example of correct use: --fields l12r3', file=sys.stderr)
+            exit_trigger = True
 
     if args['--lines-inspect']:
-        arguments_check(args, '--lines-inspect')
+        pattern = r'^\d+$'
+        matches = re.findall(pattern, args['--lines-inspect'])
+        if not matches:
+            print(f'Invalid argument in option: --lines-inspect. Example of correct use: --lines-inspect 15', file=sys.stderr)
+            exit_trigger = True
 
     if args['--version']:
         print('tabular v0.0.1')
         sys.exit()
+
+    if exit_trigger:
+        sys.exit(1)
         
     try:
         if args['<input>']:
@@ -85,20 +77,36 @@ def arg_parse():
         else:
             input_stream = sys.stdin
             print('Press Ctrl+D to finish entering data.')
+            input_data = input_stream.readlines()
     except Exception as e:
         perr('Cannot open input', e)
         sys.exit(1)
-    input_data = input_stream.read()
+    
 
     try:
         if args['<output>']:
-            output_stream = open(args['<output>'])
+            output_stream = open(args['<output>'], 'w+')
         else:
             output_stream = sys.stdout
     except Exception as e:
         perr('Cannot write output', e)
         sys.exit(1)
-    output_stream.write(input_data)
+    # output_stream.write(input_data)
+
+    if args['<input>']:
+        while True:
+            line = input_stream.readline()
+            if not line:
+                break 
+            # Process...
+            output_stream.write(line)
+    else:
+        for line in input_data:
+            # Process...
+            output_stream.write(line)
+    
+    input_stream.close()
+    output_stream.close()
 
 def main():
     arg_parse()
