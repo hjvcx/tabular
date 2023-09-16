@@ -11,7 +11,7 @@ Options:
     -n <string>, --names <string>               Defines names of columns (first character of string stands as separator). 
     -1, --first-line-header                     If enabled, makes first string perceived as header.
     -f <string>, --fields <string>              Defines specification of output. [default: l0]
-    -L <number>, --lines-inspect <number>       Defines number of strings being counted before calculating field sizes. [default: 0]
+    -L <number>, --lines-inspect <number>       Defines number of strings being counted for calculating field sizes. [default: 0]
     -h, --help                                  Open this message.
     -v, --version                               Version check and finish program execution.
 '''
@@ -20,14 +20,28 @@ from docopt import docopt
 import pprint
 import sys
 import re
+import select
+
+settings = { 
+    'decostyle': '',
+    'headerline': 0,
+    'columnline': 0,
+    'borderline': 0,
+    'fields': ['l0'],
+    'lines_inspect': 0,
+    'names': [],
+    'input_separators': [' '],
+    'sticky_separators': True,
+    'trim_empty': False,
+    'fl_header': False,
+    'input': None,
+    'output': None
+}
 
 # Pretty print function
 def pretty_printer(data):
     pp = pprint.PrettyPrinter(stream=sys.stderr)
     pp.pprint(data)
-
-def get_unique_characters(input_string):
-    return ''.join(sorted(set(input_string), key=input_string.index))
 
 def perr(message, exception=None):
        if exception:
@@ -44,25 +58,72 @@ def arg_parse():
 
     # Working with options and parameters using conditions   
     if args['--output-style']:
-        pattern = r'^[au]?[hH]?[cC]?[bB]?$'
+        list_args = list(args['--output-style'])
+
+        pattern = r'^[auHBChbc]+$'
         matches = re.findall(pattern, args['--output-style'])
-        if not matches:
-            print(f'Invalid argument in option: --output-style. Example of correct use: --output-style uhC', file=sys.stderr)
+
+        eq = sorted(set(list_args)) == sorted(list_args)
+        au_both = 'a' in list_args and 'u' in list_args
+        no_au_both = 'a' not in list_args and 'u' not in list_args
+        A_or_U = 'A' in list_args or 'U' in list_args
+        a_and_HCB = 'a' in list_args and ('H' in list_args or 'C' in list_args or 'B' in list_args)
+
+        if not matches or not eq or au_both or no_au_both or A_or_U or a_and_HCB:
+            perr('Invalid argument in option: --output-style. Example of correct use: --output-style uhC')
             exit_trigger = True
+        else:
+            if 'a' in list_args:
+                settings['decostyle'] = 'ASCII'
+            else:
+                settings['decostyle'] = 'Unicode'
+            if 'h' in list_args:
+                settings['headerline'] = 1
+            elif 'H' in list_args:
+                settings['headerline'] = 2
+            if 'c' in list_args:
+                settings['columnline'] = 1
+            elif 'C' in list_args:
+                settings['columnline'] = 2
+            if 'b' in list_args:
+                settings['borderline'] = 1
+            elif 'B' in list_args:
+                settings['borderline'] = 2
 
     if args['--fields']:
         pattern = r'^([lrjc]\d+)+$'
         matches = re.findall(pattern, args['--fields'])
         if not matches:
-            print(f'Invalid argument in option: --fields. Example of correct use: --fields l12r3', file=sys.stderr)
+            perr('Invalid argument in option: --fields. Example of correct use: --fields l12r3')
             exit_trigger = True
+        else:
+            settings['fields'] = re.findall(r'([a-zA-Z]\d+)', args['--fields'])
 
     if args['--lines-inspect']:
         pattern = r'^\d+$'
         matches = re.findall(pattern, args['--lines-inspect'])
         if not matches:
-            print(f'Invalid argument in option: --lines-inspect. Example of correct use: --lines-inspect 15', file=sys.stderr)
+            perr('Invalid argument in option: --lines-inspect. Example of correct use: --lines-inspect 15')
             exit_trigger = True
+        else:
+            settings['lines_inspect'] = int(args['--lines-inspect'])
+
+    if args['--input-separator']:
+        if not args['--sticky-separators'] and not args['--input-separator'] == ' ':
+            settings['sticky_separators'] = False
+            settings['input_separators'] = list(args['--input-separator'])
+        else:
+            settings['input_separators'] = args['--input-separator']
+
+    if args['--names']:
+        delimiter = args["--names"][0]
+        settings['names'] = args['--names'][1:].split(delimiter)
+
+    if args['--trim-empty']:
+        settings['trim_empty'] = True
+
+    if args['--first-line-header']:
+        settings['--first-line-header'] = True
 
     if args['--version']:
         print('tabular v0.0.1')
@@ -70,45 +131,86 @@ def arg_parse():
 
     if exit_trigger:
         sys.exit(1)
-        
+
     try:
         if args['<input>']:
-            input_stream = open(args['<input>'])
+            settings['input'] = open(args['<input>'])
         else:
-            input_stream = sys.stdin
-            print('Press Ctrl+D to finish entering data.')
-            input_data = input_stream.readlines()
+            settings['input'] = sys.stdin
     except Exception as e:
         perr('Cannot open input', e)
         sys.exit(1)
-    
 
     try:
         if args['<output>']:
-            output_stream = open(args['<output>'], 'w+')
+            settings['output'] = open(args['<output>'], 'w+')
         else:
-            output_stream = sys.stdout
+            settings['output'] = sys.stdout
     except Exception as e:
         perr('Cannot write output', e)
         sys.exit(1)
-    # output_stream.write(input_data)
 
-    if args['<input>']:
+    pretty_printer(settings)
+
+def read_first_part():
+    lines = []
+
+    if settings['lines_inspect'] != 0:
+        for _ in range(settings['lines_inspect']):
+            lines.append(settings['input'].readline()[:-1])
+    else:
         while True:
-            line = input_stream.readline()
+            line = settings['input'].readline()[:-1]
             if not line:
                 break 
-            # Process...
-            output_stream.write(line)
-    else:
-        for line in input_data:
-            # Process...
-            output_stream.write(line)
+            lines.append(line)
+
+    return lines
+
+def split_rows(rows):
+    s_rows = []
+    for row in rows:
+        for d in settings['input_separators']:
+            s_rows.append(row.split(d))
+
+    return s_rows
+
+def compute_fields(rows):
+    rows = split_rows(rows)
+    max_ls = []
+    for i in range(max(map(len, rows))):
+        max_l = max(len(row[i]) for row in rows if i < len(row))
+        max_ls.append(max_l)
     
-    input_stream.close()
-    output_stream.close()
+    return max_ls
+
+def write_row(fspec, row):
+    row = split_rows([row])[0]
+    str_row = ''
+    for i in range(len(row)):
+        str_row = str_row + row[i] + ' '*(fspec[i]-len(row[i])+1)
+    str_row += '\n'
+    settings['output'].write(str_row)
+
 
 def main():
     arg_parse()
-   
+
+    rows = read_first_part()
+    fspec = compute_fields(rows)
+
+    for row in rows:
+        write_row(fspec, row)
+
+    ready, _, _ = select.select([sys.stdin], [], [], 0.1)
+    if ready:
+        while True:
+            row = settings['input'].readline()
+            if not row:
+                break
+            write_row(fspec, row)
+
+    settings['input'].close()
+    settings['output'].close()
+
 main()
