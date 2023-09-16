@@ -20,7 +20,6 @@ from docopt import docopt
 import pprint
 import sys
 import re
-import select
 
 settings = { 
     'decostyle': '',
@@ -43,6 +42,7 @@ def pretty_printer(data):
     pp = pprint.PrettyPrinter(stream=sys.stderr)
     pp.pprint(data)
 
+# Stderr print function
 def perr(message, exception=None):
        if exception:
            msg = f'{message}: {exception}'
@@ -53,7 +53,7 @@ def perr(message, exception=None):
 def arg_parse():
     # Getting parameters and options dictionary then print it (for understanding)
     args = docopt(__doc__)
-    pretty_printer(args)
+    # pretty_printer(args)
     exit_trigger = False
 
     # Working with options and parameters using conditions   
@@ -132,6 +132,7 @@ def arg_parse():
     if exit_trigger:
         sys.exit(1)
 
+    # Trying to initialize input and output streams
     try:
         if args['<input>']:
             settings['input'] = open(args['<input>'])
@@ -150,8 +151,9 @@ def arg_parse():
         perr('Cannot write output', e)
         sys.exit(1)
 
-    pretty_printer(settings)
+    # pretty_printer(settings)
 
+# Reading first n rows where n is -L option value
 def read_first_part():
     lines = []
 
@@ -167,31 +169,41 @@ def read_first_part():
 
     return lines
 
+# Making string array from row after division by --input-separator values
 def split_rows(rows):
     s_rows = []
+
     for row in rows:
         for d in settings['input_separators']:
             s_rows.append(row.split(d))
 
     return s_rows
 
+# Calculating maximum lengths of column values
 def compute_fields(rows):
     rows = split_rows(rows)
     max_ls = []
-    for i in range(max(map(len, rows))):
-        max_l = max(len(row[i]) for row in rows if i < len(row))
-        max_ls.append(max_l)
+
+    if rows:
+        for i in range(max(map(len, rows))):
+            max_l = max(len(row[i]) for row in rows if i < len(row))
+            max_ls.append(max_l)
+    else:
+        perr('No input given')
+        sys.exit(1)
     
     return max_ls
 
+# Making string as row for output and then writing it
 def write_row(fspec, row):
     row = split_rows([row])[0]
     str_row = ''
+
     for i in range(len(row)):
         str_row = str_row + row[i] + ' '*(fspec[i]-len(row[i])+1)
+
     str_row += '\n'
     settings['output'].write(str_row)
-
 
 def main():
     arg_parse()
@@ -202,8 +214,7 @@ def main():
     for row in rows:
         write_row(fspec, row)
 
-    ready, _, _ = select.select([sys.stdin], [], [], 0.1)
-    if ready:
+    if settings['lines_inspect'] != 0:
         while True:
             row = settings['input'].readline()
             if not row:
