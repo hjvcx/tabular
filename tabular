@@ -5,7 +5,7 @@ Usage:
 
 Options:
     -o <style>, --output-style <style>          Defines style for columns. [default: uhC]
-    -i <string>, --input-separator <string>     Defines characters being used as separators. [default:  ]
+    -i <string>, --input-separator <string>     Defines characters being used as separators. [default:  \t]
     -s, --sticky-separators                     Multiple separators as one. [default: True]
     -t, --trim-empty                            Deletes empty fields at beginning and end of entries. 
     -n <string>, --names <string>               Defines names of columns (first character of string stands as separator). 
@@ -31,7 +31,7 @@ settings = {
     'names': [],
     'input_separators': [' '],
     'sticky_separators': True,
-    'trim_empty': False,
+    'trim_empty': True,
     'fl_header': False,
     'input': None,
     'output': None
@@ -42,6 +42,15 @@ def pretty_printer(data):
     pp = pprint.PrettyPrinter(stream=sys.stderr)
     pp.pprint(data)
 
+# sys.exit() + streams closing
+def sysexit(code):
+    if settings['input']:
+        settings['input'].close()
+    if settings['output']:
+        settings['output'].close()
+    
+    sys.exit(code)
+
 # Stderr print function
 def perr(message, exception=None):
        if exception:
@@ -50,6 +59,7 @@ def perr(message, exception=None):
            msg = message
        print(msg, file=sys.stderr)
 
+# Argument parsing function
 def arg_parse():
     # Getting parameters and options dictionary then print it (for understanding)
     args = docopt(__doc__)
@@ -58,37 +68,42 @@ def arg_parse():
 
     # Working with options and parameters using conditions   
     if args['--output-style']:
-        list_args = list(args['--output-style'])
+        try:
+            list_args = list(args['--output-style'])
+            list_args_l = list(args['--output-style'].lower())
 
-        pattern = r'^[auHBChbc]+$'
-        matches = re.findall(pattern, args['--output-style'])
+            pattern = r'[AUauHBChbc]+'
+            matches = re.fullmatch(pattern, args['--output-style'])
 
-        eq = sorted(set(list_args)) == sorted(list_args)
-        au_both = 'a' in list_args and 'u' in list_args
-        no_au_both = 'a' not in list_args and 'u' not in list_args
-        A_or_U = 'A' in list_args or 'U' in list_args
-        a_and_HCB = 'a' in list_args and ('H' in list_args or 'C' in list_args or 'B' in list_args)
-
-        if not matches or not eq or au_both or no_au_both or A_or_U or a_and_HCB:
-            perr('Invalid argument in option: --output-style. Example of correct use: --output-style uhC')
+            if sorted(set(list_args_l)) != sorted(list_args_l):
+                raise Exception('Duplicated characters')
+            if 'a' in set(list_args) and 'u' in set(list_args):
+                raise Exception('Argument cannot contain "a" and "u" both')
+            if 'a' not in set(list_args) and 'u' not in set(list_args):
+                raise Exception('Argument must contain "a" or "u"')
+        except Exception as e:
+            perr('Invalid argument in option: --output-style', e)
             exit_trigger = True
+
+        if 'a' in list_args:
+            settings['decostyle'] = 'ASCII'
         else:
-            if 'a' in list_args:
-                settings['decostyle'] = 'ASCII'
-            else:
-                settings['decostyle'] = 'Unicode'
-            if 'h' in list_args:
-                settings['headerline'] = 1
-            elif 'H' in list_args:
-                settings['headerline'] = 2
-            if 'c' in list_args:
-                settings['columnline'] = 1
-            elif 'C' in list_args:
-                settings['columnline'] = 2
-            if 'b' in list_args:
-                settings['borderline'] = 1
-            elif 'B' in list_args:
-                settings['borderline'] = 2
+            settings['decostyle'] = 'Unicode'
+
+        if 'h' in list_args:
+            settings['headerline'] = 1
+        elif 'H' in list_args:
+            settings['headerline'] = 2
+
+        if 'c' in list_args:
+            settings['columnline'] = 1
+        elif 'C' in list_args:
+            settings['columnline'] = 2
+
+        if 'b' in list_args:
+            settings['borderline'] = 1
+        elif 'B' in list_args:
+            settings['borderline'] = 2
 
     if args['--fields']:
         pattern = r'^([lrjc]\d+)+$'
@@ -108,19 +123,20 @@ def arg_parse():
         else:
             settings['lines_inspect'] = int(args['--lines-inspect'])
 
-    if args['--input-separator']:
-        if not args['--sticky-separators'] and not args['--input-separator'] == ' ':
+    if not args['--sticky-separators']:
+        if not args['--input-separator'] == ' \t':
             settings['sticky_separators'] = False
-            settings['input_separators'] = list(args['--input-separator'])
-        else:
-            settings['input_separators'] = args['--input-separator']
+
+    if args['--input-separator']:
+        settings['input_separators'] = list(args['--input-separator'])
 
     if args['--names']:
         delimiter = args["--names"][0]
         settings['names'] = args['--names'][1:].split(delimiter)
 
-    if args['--trim-empty']:
-        settings['trim_empty'] = True
+    if not args['--trim-empty']:
+        if not args['--input-separator'] == ' \t':
+            settings['trim_empty'] = False
 
     if args['--first-line-header']:
         settings['--first-line-header'] = True
@@ -148,26 +164,29 @@ def arg_parse():
         else:
             settings['output'] = sys.stdout
     except Exception as e:
-        perr('Cannot write output', e)
+        perr('Cannot open output', e)
         sys.exit(1)
 
     # pretty_printer(settings)
 
 # Reading first n rows where n is -L option value
 def read_first_part():
-    lines = []
+    rows = []
 
     if settings['lines_inspect'] != 0:
         for _ in range(settings['lines_inspect']):
-            lines.append(settings['input'].readline()[:-1])
+            row = settings['input'].readline()
+            if not row:
+                break
+            rows.append(row.rstrip('\n\r'))
     else:
         while True:
-            line = settings['input'].readline()[:-1]
-            if not line:
+            row = settings['input'].readline()
+            if not row:
                 break 
-            lines.append(line)
+            rows.append(row.rstrip('\n\r'))
 
-    return lines
+    return rows
 
 # Making string array from row after division by --input-separator values
 def split_rows(rows):
@@ -175,7 +194,8 @@ def split_rows(rows):
 
     for row in rows:
         for d in settings['input_separators']:
-            s_rows.append(row.split(d))
+            if d in row:
+                s_rows.append(row.split(d))
 
     return s_rows
 
@@ -189,8 +209,7 @@ def compute_fields(rows):
             max_l = max(len(row[i]) for row in rows if i < len(row))
             max_ls.append(max_l)
     else:
-        perr('No input given')
-        sys.exit(1)
+        max_ls = [0]
     
     return max_ls
 
@@ -200,7 +219,7 @@ def write_row(fspec, row):
     str_row = ''
 
     for i in range(len(row)):
-        str_row = str_row + row[i] + ' '*(fspec[i]-len(row[i])+1)
+        str_row += row[i].ljust(fspec[i]) + ' '
 
     str_row += '\n'
     settings['output'].write(str_row)
@@ -220,8 +239,5 @@ def main():
             if not row:
                 break
             write_row(fspec, row)
-
-    settings['input'].close()
-    settings['output'].close()
 
 main()
