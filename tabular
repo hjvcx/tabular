@@ -200,15 +200,22 @@ def read_first_part():
 
     return rows
 
+# Function for filtering empty strings in splitted row array
+def is_not_empty(string):
+    return string != ''
+
 # Making string array from rows divided by --input-separator values
 def split_row(row):
     a_row = []
     rpl = settings['input_separators'][0]
 
-    for d in settings['input_separators']:
-        if d != rpl:
-            row = row.replace(d, rpl)
-    a_row = row.split(rpl)
+    if settings['input_separators'] == [' ', '\t']:
+        a_row = row.split()
+    else:
+        for d in settings['input_separators']:
+            if d != rpl:
+                row = row.replace(d, rpl)
+        a_row = list(filter(is_not_empty, row.split(rpl)))
 
     return a_row
 
