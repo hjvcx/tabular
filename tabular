@@ -7,8 +7,8 @@ Options:
     -o <style>, --output-style <style>          Defines style for columns. [default: uhC]
     -i <string>, --input-separator <string>     Defines characters being used as separators. [default:  \t]
     -s, --sticky-separators                     Multiple separators as one. [default: True]
-    -t, --trim-empty                            Deletes empty fields at beginning and end of entries. 
-    -n <string>, --names <string>               Defines names of columns (first character of string stands as separator). 
+    -t, --trim-empty                            Deletes empty fields at beginning and end of entries. [default: True]
+    -n <string>, --names <string>               Defines names of columns (first character of string stands as separator).
     -1, --first-line-header                     If enabled, makes first string perceived as header.
     -f <string>, --fields <string>              Defines specification of output. [default: l0]
     -L <number>, --lines-inspect <number>       Defines number of strings being counted for calculating field sizes. [default: 0]
@@ -21,7 +21,7 @@ import pprint
 import sys
 import re
 
-settings = { 
+settings = {
     'decostyle': '',
     'headerline': 0,
     'columnline': 0,
@@ -48,16 +48,16 @@ def sysexit(code):
         settings['input'].close()
     if settings['output']:
         settings['output'].close()
-    
+
     sys.exit(code)
 
 # Stderr print function
 def perr(message, exception=None):
-       if exception:
-           msg = f'{message}: {exception}'
-       else:
-           msg = message
-       print(msg, file=sys.stderr)
+        if exception:
+            msg = f'{message}: {exception}'
+        else:
+            msg = message
+        print(msg, file=sys.stderr)
 
 # Argument parsing function
 def arg_parse():
@@ -66,7 +66,7 @@ def arg_parse():
     # pretty_printer(args)
     exit_trigger = False
 
-    # Working with options and parameters using conditions   
+    # Working with options and parameters using conditions
     if args['--output-style']:
         try:
             list_args = list(args['--output-style'])
@@ -75,14 +75,16 @@ def arg_parse():
             pattern = r'[AUauHBChbc]+'
             matches = re.fullmatch(pattern, args['--output-style'])
 
+            if not matches:
+                raise Exception('wrong character')
             if sorted(set(list_args_l)) != sorted(list_args_l):
-                raise Exception('Duplicated characters')
+                raise Exception('duplicated characters')
             if 'a' in set(list_args) and 'u' in set(list_args):
-                raise Exception('Argument cannot contain "a" and "u" both')
+                raise Exception('argument cannot contain "a" and "u" both')
             if 'a' not in set(list_args) and 'u' not in set(list_args):
-                raise Exception('Argument must contain "a" or "u"')
+                raise Exception('argument must contain "a" or "u"')
         except Exception as e:
-            perr('Invalid argument in option: --output-style', e)
+            perr('Invalid argument in option --output-style', e)
             exit_trigger = True
 
         if 'a' in list_args:
@@ -106,21 +108,31 @@ def arg_parse():
             settings['borderline'] = 2
 
     if args['--fields']:
-        pattern = r'^([lrjc]\d+)+$'
-        matches = re.findall(pattern, args['--fields'])
-        if not matches:
-            perr('Invalid argument in option: --fields. Example of correct use: --fields l12r3')
+        try:
+            pattern = r'^([lrjc]\d+)+$'
+            matches = re.findall(pattern, args['--fields'])
+            for c in args['--fields']:
+                if c not in 'lrjc1234567890':
+                    raise Exception('wrong character')
+            if not matches:
+                raise Exception('bad structure')
+        except Exception as e:
+            perr('Invalid argument in option --fields', e)
             exit_trigger = True
-        else:
-            settings['fields'] = re.findall(r'([a-zA-Z]\d+)', args['--fields'])
+
+        settings['fields'] = re.findall(r'([a-zA-Z]\d+)', args['--fields'])
 
     if args['--lines-inspect']:
-        pattern = r'^\d+$'
-        matches = re.findall(pattern, args['--lines-inspect'])
-        if not matches:
-            perr('Invalid argument in option: --lines-inspect. Example of correct use: --lines-inspect 15')
+        try:
+            pattern = r'^\d+$'
+            matches = re.findall(pattern, args['--lines-inspect'])
+            if not matches:
+                raise Exception('argument must be a number')
+        except Exception as e:
+            perr('Invalid argument in option --lines-inspect', e)
             exit_trigger = True
-        else:
+
+        if not exit_trigger:
             settings['lines_inspect'] = int(args['--lines-inspect'])
 
     if not args['--sticky-separators']:
@@ -183,25 +195,30 @@ def read_first_part():
         while True:
             row = settings['input'].readline()
             if not row:
-                break 
+                break
             rows.append(row.rstrip('\n\r'))
 
     return rows
 
-# Making string array from row after division by --input-separator values
-def split_rows(rows):
-    s_rows = []
+# Making string array from rows divided by --input-separator values
+def split_row(row):
+    a_row = []
+    rpl = settings['input_separators'][0]
 
-    for row in rows:
-        for d in settings['input_separators']:
-            if d in row:
-                s_rows.append(row.split(d))
+    for d in settings['input_separators']:
+        if d != rpl:
+            row = row.replace(d, rpl)
+    a_row = row.split(rpl)
 
-    return s_rows
+    return a_row
 
 # Calculating maximum lengths of column values
 def compute_fields(rows):
-    rows = split_rows(rows)
+    s_rows = []
+    for row in rows:
+        s_rows.append(split_row(row))
+    rows = s_rows
+
     max_ls = []
 
     if rows:
@@ -210,12 +227,12 @@ def compute_fields(rows):
             max_ls.append(max_l)
     else:
         max_ls = [0]
-    
+
     return max_ls
 
 # Making string as row for output and then writing it
 def write_row(fspec, row):
-    row = split_rows([row])[0]
+    row = split_row(row)
     str_row = ''
 
     for i in range(len(row)):
