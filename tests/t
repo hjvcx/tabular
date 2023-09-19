@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# echo $PWD
+
+COL_NORMAL="\033[0m"
+COL_RED="\033[31;1m"
+COL_GREEN="\033[32;1m"
+
+declare -A test
+
+if [ -z $* ]; then
+	tests=$(ls -v | grep .args | sed 's/.args//')
+else
+	tests=$@
+fi
+
+for t in $tests; do
+	printf "%2d ... " $t
+	../tabular $(cat $t.args) $t.in > $t.pout 2> $t.perr
+
+	if (diff -q $t.err $t.perr) > /dev/null; then
+		echo -e ${COL_GREEN}ok${COL_NORMAL}
+	else
+		echo -e ${COL_RED}failed${COL_NORMAL}
+	fi
+done
