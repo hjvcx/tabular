@@ -151,7 +151,13 @@ def arg_parse():
             settings['trim_empty'] = False
 
     if args['--first-line-header']:
-        settings['--first-line-header'] = True
+        try:
+            if settings['names']:
+                raise Exception('cannot be used with --names')
+            settings['fl_header'] = True
+        except Exception as e:
+            perr('Invalid --first-line-header usage', e)
+            exit_trigger = True
 
     if args['--version']:
         print('tabular v0.0.1')
@@ -290,6 +296,11 @@ def main():
     arg_parse()
 
     rows = read_first_part()
+
+    if settings['fl_header'] and rows:
+        settings['names'] = split_row(rows[0])
+        rows.pop(0)
+
     fspec = compute_fields(rows)
 
     write_names(fspec)
