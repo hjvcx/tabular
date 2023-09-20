@@ -18,7 +18,8 @@ for t in $tests; do
 	printf "%2d ... " $t
 	../tabular $(cat $t.args) $t.in > $t.pout 2> $t.perr
 
-	if (diff -q $t.err $t.perr) > /dev/null; then
+	# if (diff -q $t.err $t.perr) > /dev/null; then
+	if (diff -q $t.out $t.pout && diff -q $t.err $t.perr) > /dev/null; then
 		echo -e ${COL_GREEN}ok${COL_NORMAL}
 	else
 		echo -e ${COL_RED}failed${COL_NORMAL}

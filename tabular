@@ -215,13 +215,18 @@ def split_row(row):
         for d in settings['input_separators']:
             if d != rpl:
                 row = row.replace(d, rpl)
-        a_row = list(filter(is_not_empty, row.split(rpl)))
+        if settings['sticky_separators']:
+            a_row = list(filter(is_not_empty, row.split(rpl)))
+        else:
+            a_row = row.split(rpl)
 
     return a_row
 
 # Calculating maximum lengths of column values
 def compute_fields(rows):
     s_rows = []
+    if settings['names']:
+        s_rows.append(settings['names'])
     for row in rows:
         s_rows.append(split_row(row))
     rows = s_rows
@@ -239,20 +244,55 @@ def compute_fields(rows):
 
 # Making string as row for output and then writing it
 def write_row(fspec, row):
+    if settings['trim_empty']:
+        row = row.strip()
     row = split_row(row)
     str_row = ''
 
-    for i in range(len(row)):
-        str_row += row[i].ljust(fspec[i]) + ' '
+    for i in range(len(fspec)):
+        if i < len(row):
+            str_row += row[i].ljust(fspec[i])
+        else:
+            str_row += ''.ljust(fspec[i])
+
+        if i != len(fspec)-1:
+            str_row += '|'
 
     str_row += '\n'
     settings['output'].write(str_row)
+
+def write_names(fspec):
+    names = settings['names']
+    str_names = ''
+
+    for i in range(len(fspec)):
+        if i < len(names):
+            str_names += names[i].ljust(fspec[i])
+        else:
+            str_names += ''.ljust(fspec[i])
+
+        if i != len(fspec)-1:
+            str_names += '|'
+    str_names += '\n'
+
+    settings['output'].write(str_names)
+
+    sline = ''
+    for i in range(len(fspec)):
+        sline += '-'*fspec[i]
+        if i != len(fspec)-1:
+            sline += '+'
+    sline += '\n'
+
+    settings['output'].write(sline)
 
 def main():
     arg_parse()
 
     rows = read_first_part()
     fspec = compute_fields(rows)
+
+    write_names(fspec)
 
     for row in rows:
         write_row(fspec, row)
