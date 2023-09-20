@@ -256,7 +256,7 @@ def write_row(fspec, row):
             str_row += ''.ljust(fspec[i])
 
         if i != len(fspec)-1:
-            str_row += '|'
+            str_row += ' | '
 
     str_row += '\n'
     settings['output'].write(str_row)
@@ -272,7 +272,7 @@ def write_names(fspec):
             str_names += ''.ljust(fspec[i])
 
         if i != len(fspec)-1:
-            str_names += '|'
+            str_names += ' | '
     str_names += '\n'
 
     settings['output'].write(str_names)
@@ -281,7 +281,7 @@ def write_names(fspec):
     for i in range(len(fspec)):
         sline += '-'*fspec[i]
         if i != len(fspec)-1:
-            sline += '+'
+            sline += '-+-'
     sline += '\n'
 
     settings['output'].write(sline)
