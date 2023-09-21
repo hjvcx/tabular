@@ -626,6 +626,14 @@ def main():
 
     rows = read_first_part()
 
+    try:
+        fspec = compute_fields(rows)
+        if len(settings['fields']) > len(fspec):
+            raise Exception('cannot be more letters than columns in lines inspection rows')
+    except Exception as e:
+            perr('Invalid argument in option --fields', e)
+            sys.exit(1)
+
     if settings['fields'] != 'f0':
         new_rows = []
         for row in rows:
@@ -637,6 +645,7 @@ def main():
         rows.pop(0)
 
     fspec = compute_fields(rows)
+
     if settings['fields'] == 'f0':
         rml_fields[1] = len(fspec)
 
