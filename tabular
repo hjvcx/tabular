@@ -454,45 +454,48 @@ def write_row(fspec, row):
 
     str_row = ''
 
-    for i in range(rml_fields[0]):
-        if i < len(row):
-            if settings['fields'][i][0] == 'l':
-                new_row.append(row[i].ljust(fspec[i]))
-            if settings['fields'][i][0] == 'r':
-                new_row.append(row[i].rjust(fspec[i]))
-            if settings['fields'][i][0] == 'c':
-                new_row.append(row[i].center(fspec[i]))
-            if settings['fields'][i][0] == 'j':
-                new_row.append(align_to_width(row[i], fspec[i]))
-        else:
-            new_row.append(''.ljust(fspec[i]))
+    try:
+        for i in range(rml_fields[0]):
+            if i < len(row):
+                if settings['fields'][i][0] == 'l':
+                    new_row.append(row[i].ljust(fspec[i]))
+                if settings['fields'][i][0] == 'r':
+                    new_row.append(row[i].rjust(fspec[i]))
+                if settings['fields'][i][0] == 'c':
+                    new_row.append(row[i].center(fspec[i]))
+                if settings['fields'][i][0] == 'j':
+                    new_row.append(align_to_width(row[i], fspec[i]))
+            else:
+                new_row.append(''.ljust(fspec[i]))
 
-    for i in range(rml_fields[0], rml_fields[1]+rml_fields[0]):
-        if i < len(row):
-            if settings['fields'][rml_fields[0]][0] == 'l':
-                new_row.append(row[i].ljust(fspec[i]))
-            if settings['fields'][rml_fields[0]][0] == 'r':
-                new_row.append(row[i].rjust(fspec[i]))
-            if settings['fields'][rml_fields[0]][0] == 'c':
-                new_row.append(row[i].center(fspec[i]))
-            if settings['fields'][rml_fields[0]][0] == 'j':
-                new_row.append(align_to_width(row[i], fspec[i]))
-        else:
-            new_row.append(''.ljust(fspec[i]))
+        for i in range(rml_fields[0], rml_fields[1]+rml_fields[0]):
+            if i < len(row):
+                if settings['fields'][rml_fields[0]][0] == 'l':
+                    new_row.append(row[i].ljust(fspec[i]))
+                if settings['fields'][rml_fields[0]][0] == 'r':
+                    new_row.append(row[i].rjust(fspec[i]))
+                if settings['fields'][rml_fields[0]][0] == 'c':
+                    new_row.append(row[i].center(fspec[i]))
+                if settings['fields'][rml_fields[0]][0] == 'j':
+                    new_row.append(align_to_width(row[i], fspec[i]))
+            else:
+                new_row.append(''.ljust(fspec[i]))
 
-    for i in range(rml_fields[1]+rml_fields[0], rml_fields[2]+rml_fields[1]+rml_fields[0]):
-        delta = i - (rml_fields[1]+rml_fields[0])
-        if i < len(row):
-            if settings['fields'][rml_fields[0]+delta+1][0] == 'l':
-                new_row.append(row[i].ljust(fspec[i]))
-            if settings['fields'][rml_fields[0]+delta+1][0] == 'r':
-                new_row.append(row[i].rjust(fspec[i]))
-            if settings['fields'][rml_fields[0]+delta+1][0] == 'c':
-                new_row.append(row[i].center(fspec[i]))
-            if settings['fields'][rml_fields[0]+delta+1][0] == 'j':
-                new_row.append(align_to_width(row[i], fspec[i]))
-        else:
-            new_row.append(''.ljust(fspec[i]))
+        for i in range(rml_fields[1]+rml_fields[0], rml_fields[2]+rml_fields[1]+rml_fields[0]):
+            delta = i - (rml_fields[1]+rml_fields[0])
+            if i < len(row):
+                if settings['fields'][rml_fields[0]+delta+1][0] == 'l':
+                    new_row.append(row[i].ljust(fspec[i]))
+                if settings['fields'][rml_fields[0]+delta+1][0] == 'r':
+                    new_row.append(row[i].rjust(fspec[i]))
+                if settings['fields'][rml_fields[0]+delta+1][0] == 'c':
+                    new_row.append(row[i].center(fspec[i]))
+                if settings['fields'][rml_fields[0]+delta+1][0] == 'j':
+                    new_row.append(align_to_width(row[i], fspec[i]))
+            else:
+                new_row.append(''.ljust(fspec[i]))
+    except:
+        perr(str(settings['fields'])+', '+str(rml_fields))
 
     row = new_row
 
@@ -604,9 +607,9 @@ def rearrange_columns(row):
                 continue
             new_row_mid.append(row[i])
 
-    rml_fields[0] = len(new_row_right)
+    rml_fields[0] = len(new_row_left)
     rml_fields[1] = len(new_row_mid)
-    rml_fields[2] = len(new_row_left)
+    rml_fields[2] = len(new_row_right)
 
     new_row_full.extend(new_row_left)
     new_row_full.extend(new_row_mid)
