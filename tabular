@@ -50,7 +50,8 @@ charset = {
     'v_filling': '   ',
     'h_filling': '',
     'lbv_filling': '',
-    'rbv_filling': ''
+    'rbv_filling': '',
+    'bh_filling': ''
 }
 
 # Pretty print function
@@ -264,42 +265,44 @@ def compute_fields(rows):
 
     return max_ls
 
-def write_names_upper_border(fspec):
-    border = ''
+def write_top(fspec):
+    line = ''
 
-    left = ''
-    mid = ' '
-    right = ''
-    filling = ''
-
-    if settings['decostyle'] == 'ASCII':
-        filling = '-'
-        left = '+'
-        right = '+'
-    if settings['decostyle'] == 'ASCII' and settings['columnline']:
-        mid = '+'
-
-    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
-        filling = '─'
-        left = '┌'
-        right = '┐'
-    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
-        filling = '═'
-        left = '╔'
-        right = '╗'
-
-    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 1:
-        mid = '┬'
-    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 2:
-        mid = '╥'
-    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 1:
-        mid = '╤'
-    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 2:
-        mid = '╦'
-
-    border += left
+    line += charset['top_left']
     for i in range(len(fspec)):
-        a = 0
+        line += charset['bh_filling']*fspec[i]
+        if i != len(fspec)-1:
+            line += charset['top_mid']
+    line += charset['top_right']
+    line += '\n'
+
+    settings['output'].write(line)
+
+def write_mid(fspec):
+    line = ''
+
+    line += charset['mid_left']
+    for i in range(len(fspec)):
+        line += charset['h_filling']*fspec[i]
+        if i != len(fspec)-1:
+            line += charset['mid_mid']
+    line += charset['mid_right']
+    line += '\n'
+
+    settings['output'].write(line)
+
+def write_bot(fspec):
+    line = ''
+
+    line += charset['bot_left']
+    for i in range(len(fspec)):
+        line += charset['bh_filling']*fspec[i]
+        if i != len(fspec)-1:
+            line += charset['bot_mid']
+    line += charset['bot_right']
+    line += '\n'
+
+    settings['output'].write(line)
 
 def set_charset():
     if settings['decostyle'] == 'ASCII' and settings['headerline']:
@@ -310,7 +313,7 @@ def set_charset():
         charset['v_filling'] = ' | '
 
     if settings['decostyle'] == 'ASCII' and settings['borderline']:
-        charset['h_filling'] = '-'
+        charset['bh_filling'] = '-'
         charset['lbv_filling'] = '| '
         charset['rbv_filling'] = ' |'
         charset['top_left'] = '+-'
@@ -339,7 +342,7 @@ def set_charset():
         charset['mid_mid'] = '═══'
 
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
-        charset['h_filling'] = '─'
+        charset['bh_filling'] = '─'
         charset['lbv_filling'] = '│ '
         charset['rbv_filling'] = ' │'
         charset['top_left'] = '┌─'
@@ -349,7 +352,7 @@ def set_charset():
         charset['top_mid'] = '───'
         charset['bot_mid'] = '───'
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
-        charset['h_filling'] = '═'
+        charset['bh_filling'] = '═'
         charset['lbv_filling'] = '║ '
         charset['rbv_filling'] = ' ║'
         charset['top_left'] = '╔═'
@@ -409,22 +412,15 @@ def set_charset():
    ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯ ╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿ ▀ ▁ ▂ ▃ ▄ ▅ ▆ ▇ █ ▉ ▊ ▋ ▌ ▍ ▎ ▏ ▐ ░ ▒ ▓ ▔ ▕ 𝌴
 '''
 
-    # if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
-    #     filling = '─'
-    #     left = '┌'
-    #     right = '┐'
-    # if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
-    #     filling = '═'
-    #     left = '╔'
-    #     right = '╗'
-
 # Making string as row for output and then writing it
 def write_row(fspec, row):
     if settings['trim_empty']:
         row = row.strip()
     row = split_row(row)
+
     str_row = ''
 
+    str_row += charset['lbv_filling']
     for i in range(len(fspec)):
         if i < len(row):
             str_row += row[i].ljust(fspec[i])
@@ -432,9 +428,10 @@ def write_row(fspec, row):
             str_row += ''.ljust(fspec[i])
 
         if i != len(fspec)-1:
-            str_row += ' | '
-
+            str_row += charset['v_filling']
+    str_row += charset['rbv_filling']
     str_row += '\n'
+
     settings['output'].write(str_row)
 
 # Making names and delimiter strings and then writing it
@@ -442,6 +439,7 @@ def write_names(fspec):
     names = settings['names']
     str_names = ''
 
+    str_names += charset['lbv_filling']
     for i in range(len(fspec)):
         if i < len(names):
             str_names += names[i].ljust(fspec[i])
@@ -449,19 +447,11 @@ def write_names(fspec):
             str_names += ''.ljust(fspec[i])
 
         if i != len(fspec)-1:
-            str_names += ' | '
+            str_names += charset['v_filling']
+    str_names += charset['rbv_filling']
     str_names += '\n'
 
     settings['output'].write(str_names)
-
-    sline = ''
-    for i in range(len(fspec)):
-        sline += '-'*fspec[i]
-        if i != len(fspec)-1:
-            sline += '-+-'
-    sline += '\n'
-
-    settings['output'].write(sline)
 
 def main():
     arg_parse()
@@ -475,7 +465,11 @@ def main():
 
     fspec = compute_fields(rows)
 
+    if settings['borderline']:
+        write_top(fspec)
     write_names(fspec)
+    if settings['headerline']:
+        write_mid(fspec)
 
     for row in rows:
         write_row(fspec, row)
@@ -486,5 +480,8 @@ def main():
             if not row:
                 break
             write_row(fspec, row)
+
+    if settings['borderline']:
+        write_bot(fspec)
 
 main()
