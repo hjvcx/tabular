@@ -37,6 +37,22 @@ settings = {
     'output': None
 }
 
+charset = {
+    'top_left': '',
+    'top_mid': '   ',
+    'top_right': '',
+    'mid_left': '',
+    'mid_mid': '   ',
+    'mid_right': '',
+    'bot_left': '',
+    'bot_mid': '   ',
+    'bot_right': '',
+    'v_filling': '   ',
+    'h_filling': '',
+    'lbv_filling': '',
+    'rbv_filling': ''
+}
+
 # Pretty print function
 def pretty_printer(data):
     pp = pprint.PrettyPrinter(stream=sys.stderr)
@@ -248,6 +264,160 @@ def compute_fields(rows):
 
     return max_ls
 
+def write_names_upper_border(fspec):
+    border = ''
+
+    left = ''
+    mid = ' '
+    right = ''
+    filling = ''
+
+    if settings['decostyle'] == 'ASCII':
+        filling = '-'
+        left = '+'
+        right = '+'
+    if settings['decostyle'] == 'ASCII' and settings['columnline']:
+        mid = '+'
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
+        filling = '─'
+        left = '┌'
+        right = '┐'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
+        filling = '═'
+        left = '╔'
+        right = '╗'
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 1:
+        mid = '┬'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 2:
+        mid = '╥'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 1:
+        mid = '╤'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 2:
+        mid = '╦'
+
+    border += left
+    for i in range(len(fspec)):
+        a = 0
+
+def set_charset():
+    if settings['decostyle'] == 'ASCII' and settings['headerline']:
+        charset['h_filling'] = '-'
+        charset['mid_mid'] = '---'
+
+    if settings['decostyle'] == 'ASCII' and settings['columnline']:
+        charset['v_filling'] = ' | '
+
+    if settings['decostyle'] == 'ASCII' and settings['borderline']:
+        charset['h_filling'] = '-'
+        charset['lbv_filling'] = '| '
+        charset['rbv_filling'] = ' |'
+        charset['top_left'] = '+-'
+        charset['top_right'] = '-+'
+        charset['bot_left'] = '+-'
+        charset['bot_right'] = '-+'
+        charset['top_mid'] = '---'
+        charset['bot_mid'] = '---'
+
+    if settings['decostyle'] == 'ASCII' and settings['headerline'] and settings['columnline']:
+        charset['mid_mid'] = '-+-'
+
+    if settings['decostyle'] == 'ASCII' and settings['headerline'] and settings['borderline']:
+        charset['mid_left'] = '+-'
+        charset['mid_right'] = '-+'
+
+    if settings['decostyle'] == 'ASCII' and settings['columnline'] and settings['borderline']:
+        charset['top_mid'] = '-+-'
+        charset['bot_mid'] = '-+-'
+
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1:
+        charset['h_filling'] = '─'
+        charset['mid_mid'] = '───'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2:
+        charset['h_filling'] = '═'
+        charset['mid_mid'] = '═══'
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
+        charset['h_filling'] = '─'
+        charset['lbv_filling'] = '│ '
+        charset['rbv_filling'] = ' │'
+        charset['top_left'] = '┌─'
+        charset['top_right'] = '─┐'
+        charset['bot_left'] = '└─'
+        charset['bot_right'] = '─┘'
+        charset['top_mid'] = '───'
+        charset['bot_mid'] = '───'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
+        charset['h_filling'] = '═'
+        charset['lbv_filling'] = '║ '
+        charset['rbv_filling'] = ' ║'
+        charset['top_left'] = '╔═'
+        charset['top_right'] = '═╗'
+        charset['bot_left'] = '╚═'
+        charset['bot_right'] = '═╝'
+        charset['top_mid'] = '═══'
+        charset['bot_mid'] = '═══'
+
+    if settings['decostyle'] == 'Unicode' and settings['columnline'] == 1:
+        charset['v_filling'] = ' │ '
+    if settings['decostyle'] == 'Unicode' and settings['columnline'] == 2:
+        charset['v_filling'] = ' ║ '
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 1:
+        charset['top_mid'] = '─┬─'
+        charset['v_filling'] = ' │ '
+        charset['bot_mid'] = '─┴─'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 2:
+        charset['top_mid'] = '─╥─'
+        charset['v_filling'] = ' ║ '
+        charset['bot_mid'] = '─╨─'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 1:
+        charset['top_mid'] = '═╤═'
+        charset['v_filling'] = ' │ '
+        charset['bot_mid'] = '═╧═'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 2:
+        charset['top_mid'] = '═╦═'
+        charset['v_filling'] = ' ║ '
+        charset['bot_mid'] = '═╩═'
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['headerline'] == 1:
+        charset['mid_left'] = '├─'
+        charset['mid_right'] = '─┤'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['headerline'] == 2:
+        charset['mid_left'] = '╞═'
+        charset['mid_right'] = '═╡'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['headerline'] == 1:
+        charset['mid_left'] = '╟─'
+        charset['mid_right'] = '─╢'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['headerline'] == 2:
+        charset['mid_left'] = '╠═'
+        charset['mid_right'] = '═╣'
+
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1 and settings['columnline'] == 1:
+        charset['mid_mid'] = '─┼─'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1 and settings['columnline'] == 2:
+        charset['mid_mid'] = '─╫─'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2 and settings['columnline'] == 1:
+        charset['mid_mid'] = '═╪═'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2 and settings['columnline'] == 2:
+        charset['mid_mid'] = '═╬═'
+
+'''
+─ ━ │ ┃ ┄ ┅ ┆ ┇ ┈ ┉ ┊ ┋ ┌ ┍ ┎ ┏ ┐ ┑ ┒ ┓ └ ┕ ┖ ┗ ┘ ┙ ┚ ┛ ├ ┝ ┞ ┟ ┠ ┡ ┢ ┣ ┤ ┥ ┦ ┧ ┨ ┩ ┪ ┫ ┬ ┭ ┮ ┯ ┰ ┱ ┲ ┳
+ ┴ ┵ ┶ ┷ ┸ ┹ ┺ ┻ ┼ ┽ ┾ ┿ ╀ ╁ ╂ ╃ ╄ ╅ ╆ ╇ ╈ ╉ ╊ ╋ ╌ ╍ ╎ ╏ ═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟ ╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧
+   ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯ ╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿ ▀ ▁ ▂ ▃ ▄ ▅ ▆ ▇ █ ▉ ▊ ▋ ▌ ▍ ▎ ▏ ▐ ░ ▒ ▓ ▔ ▕ 𝌴
+'''
+
+    # if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
+    #     filling = '─'
+    #     left = '┌'
+    #     right = '┐'
+    # if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
+    #     filling = '═'
+    #     left = '╔'
+    #     right = '╗'
+
 # Making string as row for output and then writing it
 def write_row(fspec, row):
     if settings['trim_empty']:
@@ -267,6 +437,7 @@ def write_row(fspec, row):
     str_row += '\n'
     settings['output'].write(str_row)
 
+# Making names and delimiter strings and then writing it
 def write_names(fspec):
     names = settings['names']
     str_names = ''
@@ -294,6 +465,7 @@ def write_names(fspec):
 
 def main():
     arg_parse()
+    set_charset()
 
     rows = read_first_part()
 
