@@ -37,6 +37,7 @@ settings = {
     'output': None
 }
 
+# Set of chars for drawing a table
 charset = {
     'top_left': '',
     'top_mid': '   ',
@@ -53,6 +54,9 @@ charset = {
     'rbv_filling': '',
     'bh_filling': ''
 }
+
+# Number of fields before zero, in zero and after zero when using --fields option
+rml_fields = [0, 0, 0]
 
 # Pretty print function
 def pretty_printer(data):
@@ -133,6 +137,8 @@ def arg_parse():
                     raise Exception('wrong character')
             if not matches:
                 raise Exception('bad structure')
+            if args['--fields'].count('0') > 1:
+                raise Exception('cannot be more than one "0"')
         except Exception as e:
             perr('Invalid argument in option --fields', e)
             exit_trigger = True
@@ -265,6 +271,7 @@ def compute_fields(rows):
 
     return max_ls
 
+# Function of writing top part of borderline
 def write_top(fspec):
     line = ''
 
@@ -278,6 +285,7 @@ def write_top(fspec):
 
     settings['output'].write(line)
 
+# Function of writing headerline
 def write_mid(fspec):
     line = ''
 
@@ -291,6 +299,7 @@ def write_mid(fspec):
 
     settings['output'].write(line)
 
+# Function of writing bottom part of borderline
 def write_bot(fspec):
     line = ''
 
@@ -304,6 +313,7 @@ def write_bot(fspec):
 
     settings['output'].write(line)
 
+# Charset defining function for correct writing of table lines
 def set_charset():
     if settings['decostyle'] == 'ASCII' and settings['headerline']:
         charset['h_filling'] = '-'
@@ -412,18 +422,85 @@ def set_charset():
    ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯ ╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿ ▀ ▁ ▂ ▃ ▄ ▅ ▆ ▇ █ ▉ ▊ ▋ ▌ ▍ ▎ ▏ ▐ ░ ▒ ▓ ▔ ▕ 𝌴
 '''
 
+# Aligning to width function (j argument of --fields option)
+def align_to_width(row, width):
+    row = row.split()
+    num_spaces = len(row)-1
+    len_words = 0
+
+    for r in row:
+        len_words += len(r)
+
+    len_spaces = width - len_words
+    if num_spaces > 0:
+        width_spaces = len_spaces // num_spaces
+        extra_spaces = len_spaces % num_spaces
+    else:
+        width_spaces = 1
+        extra_spaces = 0
+
+    for i in range(extra_spaces):
+        row[i] += ' '
+    new_row = (' '*width_spaces).join(row)
+
+    return new_row
+
 # Making string as row for output and then writing it
 def write_row(fspec, row):
     if settings['trim_empty']:
         row = row.strip()
     row = split_row(row)
+    new_row = []
 
     str_row = ''
+
+    for i in range(rml_fields[0]):
+        if i < len(row):
+            if settings['fields'][i][0] == 'l':
+                new_row.append(row[i].ljust(fspec[i]))
+            if settings['fields'][i][0] == 'r':
+                new_row.append(row[i].rjust(fspec[i]))
+            if settings['fields'][i][0] == 'c':
+                new_row.append(row[i].center(fspec[i]))
+            if settings['fields'][i][0] == 'j':
+                new_row.append(align_to_width(row[i], fspec[i]))
+        else:
+            new_row.append(''.ljust(fspec[i]))
+
+    for i in range(rml_fields[0], rml_fields[1]+rml_fields[0]):
+        if i < len(row):
+            if settings['fields'][rml_fields[0]][0] == 'l':
+                new_row.append(row[i].ljust(fspec[i]))
+            if settings['fields'][rml_fields[0]][0] == 'r':
+                new_row.append(row[i].rjust(fspec[i]))
+            if settings['fields'][rml_fields[0]][0] == 'c':
+                new_row.append(row[i].center(fspec[i]))
+            if settings['fields'][rml_fields[0]][0] == 'j':
+                new_row.append(align_to_width(row[i], fspec[i]))
+        else:
+            new_row.append(''.ljust(fspec[i]))
+
+    for i in range(rml_fields[1]+rml_fields[0], rml_fields[2]+rml_fields[1]+rml_fields[0]):
+        delta = i - (rml_fields[1]+rml_fields[0])
+        if i < len(row):
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'l':
+                new_row.append(row[i].ljust(fspec[i]))
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'r':
+                new_row.append(row[i].rjust(fspec[i]))
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'c':
+                new_row.append(row[i].center(fspec[i]))
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'j':
+                new_row.append(align_to_width(row[i], fspec[i]))
+        else:
+            new_row.append(''.ljust(fspec[i]))
+
+    row = new_row
 
     str_row += charset['lbv_filling']
     for i in range(len(fspec)):
         if i < len(row):
-            str_row += row[i].ljust(fspec[i])
+            # str_row += row[i].ljust(fspec[i])
+            str_row += row[i]
         else:
             str_row += ''.ljust(fspec[i])
 
@@ -437,12 +514,56 @@ def write_row(fspec, row):
 # Making names and delimiter strings and then writing it
 def write_names(fspec):
     names = settings['names']
+    new_names = []
     str_names = ''
+
+    for i in range(rml_fields[0]):
+        if i < len(names):
+            if settings['fields'][i][0] == 'l':
+                new_names.append(names[i].ljust(fspec[i]))
+            if settings['fields'][i][0] == 'r':
+                new_names.append(names[i].rjust(fspec[i]))
+            if settings['fields'][i][0] == 'c':
+                new_names.append(names[i].center(fspec[i]))
+            if settings['fields'][i][0] == 'j':
+                new_names.append(align_to_width(names[i], fspec[i]))
+        else:
+            new_names.append(''.ljust(fspec[i]))
+
+    for i in range(rml_fields[0], rml_fields[1]+rml_fields[0]):
+        if i < len(names):
+            if settings['fields'][rml_fields[0]][0] == 'l':
+                new_names.append(names[i].ljust(fspec[i]))
+            if settings['fields'][rml_fields[0]][0] == 'r':
+                new_names.append(names[i].rjust(fspec[i]))
+            if settings['fields'][rml_fields[0]][0] == 'c':
+                new_names.append(names[i].center(fspec[i]))
+            if settings['fields'][rml_fields[0]][0] == 'j':
+                new_names.append(align_to_width(names[i], fspec[i]))
+        else:
+            new_names.append(''.ljust(fspec[i]))
+
+    for i in range(rml_fields[1]+rml_fields[0], rml_fields[2]+rml_fields[1]+rml_fields[0]):
+        delta = i - (rml_fields[1]+rml_fields[0])
+        if i < len(names):
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'l':
+                new_names.append(names[i].ljust(fspec[i]))
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'r':
+                new_names.append(names[i].rjust(fspec[i]))
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'c':
+                new_names.append(names[i].center(fspec[i]))
+            if settings['fields'][rml_fields[0]+delta+1][0] == 'j':
+                new_names.append(align_to_width(names[i], fspec[i]))
+        else:
+            new_names.append(''.ljust(fspec[i]))
+
+    names = new_names
 
     str_names += charset['lbv_filling']
     for i in range(len(fspec)):
         if i < len(names):
-            str_names += names[i].ljust(fspec[i])
+            # str_names += names[i].ljust(fspec[i])
+            str_names += names[i]
         else:
             str_names += ''.ljust(fspec[i])
 
@@ -453,17 +574,71 @@ def write_names(fspec):
 
     settings['output'].write(str_names)
 
+def rearrange_columns(row):
+    new_row = ''
+    row = split_row(row.rstrip('\n\r'))
+
+    zero_trigger = False
+
+    dont_touch = []
+
+    new_row_left = []
+    new_row_mid = []
+    new_row_right = []
+    new_row_full = []
+
+    for i in range(len(settings['fields'])):
+        if int(settings['fields'][i][1:]) == 0:
+            zero_trigger = True
+            continue
+        if not zero_trigger:
+            new_row_left.append(row[int(settings['fields'][i][1:])-1])
+            dont_touch.append(int(settings['fields'][i][1:])-1)
+        else:
+            new_row_right.append(row[int(settings['fields'][i][1:])-1])
+            dont_touch.append(int(settings['fields'][i][1:])-1)
+
+    if zero_trigger:
+        for i in range(len(row)):
+            if i in dont_touch:
+                continue
+            new_row_mid.append(row[i])
+
+    rml_fields[0] = len(new_row_right)
+    rml_fields[1] = len(new_row_mid)
+    rml_fields[2] = len(new_row_left)
+
+    new_row_full.extend(new_row_left)
+    new_row_full.extend(new_row_mid)
+    new_row_full.extend(new_row_right)
+
+    for i in range(len(new_row_full)):
+        new_row += new_row_full[i]
+        if i != len(new_row_full)-1:
+            new_row += settings['input_separators'][0]
+
+    return new_row
+
+
 def main():
     arg_parse()
     set_charset()
 
     rows = read_first_part()
 
+    if settings['fields'] != 'f0':
+        new_rows = []
+        for row in rows:
+            new_rows.append(rearrange_columns(row))
+        rows = new_rows
+
     if settings['fl_header'] and rows:
         settings['names'] = split_row(rows[0])
         rows.pop(0)
 
     fspec = compute_fields(rows)
+    if settings['fields'] == 'f0':
+        rml_fields[1] = len(fspec)
 
     if settings['borderline']:
         write_top(fspec)
@@ -479,6 +654,8 @@ def main():
             row = settings['input'].readline()
             if not row:
                 break
+            if settings['fields'] != 'f0':
+                row = rearrange_columns(row)
             write_row(fspec, row)
 
     if settings['borderline']:
