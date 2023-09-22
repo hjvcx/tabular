@@ -4,7 +4,7 @@ Usage:
     tabular [options] [<input> [<output>]]
 
 Options:
-    -o <style>, --output-style <style>          Defines style for columns. [default: uhC]
+    -o <string>, --output-style <string>        Defines style for table. [default: uhC]
     -i <string>, --input-separator <string>     Defines characters being used as separators. [default:  \t]
     -s, --sticky-separators                     Multiple separators as one. [default: True]
     -t, --trim-empty                            Deletes empty fields at beginning and end of entries. [default: True]
