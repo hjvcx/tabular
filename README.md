@@ -10,14 +10,14 @@ The `--output-style` option specifies a style for table.
 
 The argument encodes the column formatting style. The first letter in the line selects the characters used to frame the fields.
 
- `a` for ASCII characters
- `u` for Unicode graphics
+`a` for ASCII characters <br>
+`u` for Unicode graphics
 
 The following letters encode the drawing of different borders in the table.
 
- `h` for the border between the header (if defined) and the content
- `c` for the border between the columns
- `b` for the external border of the table.
+`h` for the border between the header (if defined) and the content <br>
+`c` for the border between the columns <br>
+`b` for the external border of the table.
 
 If Unicode characters are selected, lowercase letters encode a single line thickness, and uppercase letters encode a double line.
 
