@@ -6,8 +6,6 @@ Converting csv data into tabular view.
 
 ### -o \<string\>, --output-style \<string\>
 
-The `--output-style` option specifies a style for table.
-
 The argument encodes the column formatting style. The first letter in the line selects the characters used to frame the fields.
 
 `a` for ASCII characters <br>
@@ -43,7 +41,7 @@ Removes empty fields at the beginning and end of a row.
 
 ### -n \<string\>, --names \<string\>
 
-The string should contain a list of field names. The first character is the delimiter for names in the specified list, followed by the names separated by that delimiter. For example, in the sequence `^№^Name^Surname^Share, %`, the delimiter is "^", and the resulting field names are "№", "Name", "Surname", and "Share, %" (percentage share).
+The string should contain a list of field names. The first character is the delimiter for names in the specified list, followed by the names separated by that delimiter. For example, in the sequence `'^№^Name^Surname^Share, %'`, the delimiter is "^", and the resulting field names are "№", "Name", "Surname", and "Share, %" (percentage share).
 
 By default, the field names are empty.
 
@@ -93,10 +91,23 @@ tabular [options] [<input> [<output>]]
 Here's an example of how to use the program:
 
 ```
-example
-```
+$ cat input.csv
+Name,Age,Country
+Alice,30,USA
+Bob,25,Canada
+Charlie,40,UK
 
-In this example, the program...
+$ ./tabular -o uHCB -i ',' -f r1c3l2 -1 input.csv output.tab
+
+$ cat output.tab
+╔═════════╦═════════╦═════╗
+║    Name ║ Country ║ Age ║
+╠═════════╬═════════╬═════╣
+║   Alice ║   USA   ║ 30  ║
+║     Bob ║  Canada ║ 25  ║
+║ Charlie ║    UK   ║ 40  ║
+╚═════════╩═════════╩═════╝
+```
 
 ## Installation
 
