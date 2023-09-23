@@ -150,7 +150,7 @@ def arg_parse():
             pattern = r'^\d+$'
             matches = re.findall(pattern, args['--lines-inspect'])
             if not matches:
-                raise Exception('argument must be a number')
+                raise Exception('argument must be a number (0 or higher)')
         except Exception as e:
             perr('Invalid argument in option --lines-inspect', e)
             exit_trigger = True
