@@ -550,24 +550,28 @@ def rearrange_columns(row):
     new_row_right = []
     new_row_full = []
 
-    # Appending parts before [lrcj]0 and after if found
-    for i in range(len(settings['fields'])):
-        if int(settings['fields'][i][1:]) == 0:
-            zero_trigger = True
-            continue
-        if not zero_trigger:
-            new_row_left.append(row[int(settings['fields'][i][1:])-1])
-            dont_touch.append(int(settings['fields'][i][1:])-1)
-        else:
-            new_row_right.append(row[int(settings['fields'][i][1:])-1])
-            dont_touch.append(int(settings['fields'][i][1:])-1)
-
-    # Appending everything that not belongs to left or right parts
-    if zero_trigger:
-        for i in range(len(row)):
-            if i in dont_touch:
+    try:
+        # Appending parts before [lrcj]0 and after if found
+        for i in range(len(settings['fields'])):
+            if int(settings['fields'][i][1:]) == 0:
+                zero_trigger = True
                 continue
-            new_row_mid.append(row[i])
+            if not zero_trigger:
+                new_row_left.append(row[int(settings['fields'][i][1:])-1])
+                dont_touch.append(int(settings['fields'][i][1:])-1)
+            else:
+                new_row_right.append(row[int(settings['fields'][i][1:])-1])
+                dont_touch.append(int(settings['fields'][i][1:])-1)
+
+        # Appending everything that not belongs to left or right parts
+        if zero_trigger:
+            for i in range(len(row)):
+                if i in dont_touch:
+                    continue
+                new_row_mid.append(row[i])
+    except:
+        perr('Invalid argument in option --fields', Exception('number of row in argument cannot be bigger than columns in lines inspection rows'))
+        sysexit(1)
 
     rml_fields[0] = len(new_row_left)
     rml_fields[1] = len(new_row_mid)
@@ -596,7 +600,7 @@ def main():
             raise Exception('cannot be more letters than columns in lines inspection rows')
     except Exception as e:
             perr('Invalid argument in option --fields', e)
-            sys.exit(1)
+            sysexit(1)
 
     if settings['fields'] != 'f0':
         new_rows = []
