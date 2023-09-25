@@ -619,9 +619,11 @@ def main():
 
     if settings['borderline']:
         write_top(fspec)
-    write_names(fspec)
-    if settings['headerline']:
-        write_mid(fspec)
+
+    if settings['fl_header'] or settings['names']:
+        write_names(fspec)
+        if settings['headerline']:
+            write_mid(fspec)
 
     for row in rows:
         write_row(fspec, row)
