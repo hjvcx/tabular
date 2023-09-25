@@ -570,7 +570,7 @@ def rearrange_columns(row):
                     continue
                 new_row_mid.append(row[i])
     except:
-        perr('Invalid argument in option --fields', Exception('number of row in argument cannot be bigger than columns in lines inspection rows'))
+        perr('Invalid argument in option --fields', Exception('number of column in argument cannot be bigger than columns in lines inspection rows'))
         sysexit(1)
 
     rml_fields[0] = len(new_row_left)
@@ -593,14 +593,6 @@ def main():
     set_charset()
 
     rows = read_first_part()
-
-    try:
-        fspec = compute_fields(rows)
-        if len(settings['fields']) > len(fspec):
-            raise Exception('cannot be more letters than columns in lines inspection rows')
-    except Exception as e:
-            perr('Invalid argument in option --fields', e)
-            sysexit(1)
 
     if settings['fields'] != 'f0':
         new_rows = []
