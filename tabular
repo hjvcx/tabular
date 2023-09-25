@@ -514,8 +514,8 @@ def make_string_row(row, fspec):
 
 # Making string as row for output and then writing it
 def write_row(fspec, row):
-    if settings['trim_empty']:
-        row = row.strip()
+    if settings['trim_empty'] and ' ' not in settings['input_separators']:
+        row = row.replace(' ', '')
     row = split_row(row)
 
     row = get_aligned_row(row, fspec)
@@ -528,8 +528,8 @@ def write_names(fspec):
     names = settings['names']
 
     if settings['trim_empty'] and settings['fl_header']:
-        names[0].strip()
-        names[-1].strip()
+        for i in range(len(names)):
+            names[i] = names[i].replace(' ', '')
 
     names = get_aligned_row(names, fspec)
     str_names = make_string_row(names, fspec)
