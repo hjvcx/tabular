@@ -55,8 +55,8 @@ charset = {
     'bh_filling': ''
 }
 
-# Number of fields before zero, in zero and after zero when using --fields option
-rml_fields = [0, 0, 0]
+# Aligns for --names
+aligns = []
 
 # Pretty print function
 def pretty_printer(data):
@@ -137,8 +137,8 @@ def arg_parse():
                     raise Exception('wrong character')
             if not matches:
                 raise Exception('bad structure')
-            if args['--fields'].count('0') > 1:
-                raise Exception('cannot be more than one "0"')
+            # if args['--fields'].count('0') > 1:
+            #     raise Exception('cannot be more than one "0"')
         except Exception as e:
             perr('Invalid argument in option --fields', e)
             exit_trigger = True
@@ -242,8 +242,7 @@ def split_row(row):
         a_row = row.split()
     else:
         for d in settings['input_separators']:
-            if d != rpl:
-                row = row.replace(d, rpl)
+            row = row.replace(d, rpl)
         if settings['sticky_separators']:
             a_row = list(filter(is_not_empty, row.split(rpl)))
         else:
@@ -254,11 +253,16 @@ def split_row(row):
 # Calculating maximum lengths of column values
 def compute_fields(rows):
     s_rows = []
-    if settings['names']:
+    if settings['names'] and aligns:
         s_rows.append(settings['names'])
     for row in rows:
         s_rows.append(split_row(row))
     rows = s_rows
+
+    if settings['trim_empty']:
+        for i in range(len(rows)):
+            for j in range(len(rows[i])):
+                rows[i][j] = rows[i][j].strip()
 
     max_ls = []
 
@@ -442,55 +446,25 @@ def align_to_width(row, width):
     for i in range(extra_spaces):
         row[i] += ' '
     new_row = (' '*width_spaces).join(row)
+    new_row = new_row.ljust(width)
 
     return new_row
 
 # Making new_row array with correct alignment for every column
 def get_aligned_row(row, fspec):
     new_row = []
-
     try:
-        for i in range(rml_fields[0]):
-            if i < len(row):
-                if settings['fields'][i][0] == 'l':
-                    new_row.append(row[i].ljust(fspec[i]))
-                if settings['fields'][i][0] == 'r':
-                    new_row.append(row[i].rjust(fspec[i]))
-                if settings['fields'][i][0] == 'c':
-                    new_row.append(row[i].center(fspec[i]))
-                if settings['fields'][i][0] == 'j':
-                    new_row.append(align_to_width(row[i], fspec[i]))
-            else:
-                new_row.append(''.ljust(fspec[i]))
-
-        for i in range(rml_fields[0], rml_fields[1]+rml_fields[0]):
-            if i < len(row):
-                if settings['fields'][rml_fields[0]][0] == 'l':
-                    new_row.append(row[i].ljust(fspec[i]))
-                if settings['fields'][rml_fields[0]][0] == 'r':
-                    new_row.append(row[i].rjust(fspec[i]))
-                if settings['fields'][rml_fields[0]][0] == 'c':
-                    new_row.append(row[i].center(fspec[i]))
-                if settings['fields'][rml_fields[0]][0] == 'j':
-                    new_row.append(align_to_width(row[i], fspec[i]))
-            else:
-                new_row.append(''.ljust(fspec[i]))
-
-        for i in range(rml_fields[1]+rml_fields[0], rml_fields[2]+rml_fields[1]+rml_fields[0]):
-            delta = i - (rml_fields[1]+rml_fields[0])
-            if i < len(row):
-                if settings['fields'][rml_fields[0]+delta+1][0] == 'l':
-                    new_row.append(row[i].ljust(fspec[i]))
-                if settings['fields'][rml_fields[0]+delta+1][0] == 'r':
-                    new_row.append(row[i].rjust(fspec[i]))
-                if settings['fields'][rml_fields[0]+delta+1][0] == 'c':
-                    new_row.append(row[i].center(fspec[i]))
-                if settings['fields'][rml_fields[0]+delta+1][0] == 'j':
-                    new_row.append(align_to_width(row[i], fspec[i]))
-            else:
-                new_row.append(''.ljust(fspec[i]))
+        for i in range(len(aligns)):
+            if aligns[i] == 'r':
+                new_row.append(row[i].rjust(fspec[i]))
+            if aligns[i] == 'l':
+                new_row.append(row[i].ljust(fspec[i]))
+            if aligns[i] == 'c':
+                new_row.append(row[i].center(fspec[i]))
+            if aligns[i] == 'j':
+                new_row.append(align_to_width(row[i], fspec[i]))
     except:
-        perr(str(settings['fields'])+', '+str(rml_fields))
+        print(new_row, row, fspec)
 
     return new_row
 
@@ -499,13 +473,13 @@ def make_string_row(row, fspec):
     str_row = ''
 
     str_row += charset['lbv_filling']
-    for i in range(len(fspec)):
+    for i in range(len(row)):
         if i < len(row):
             str_row += row[i]
         else:
             str_row += ''.ljust(fspec[i])
 
-        if i != len(fspec)-1:
+        if i != len(row)-1:
             str_row += charset['v_filling']
     str_row += charset['rbv_filling']
     str_row += '\n'
@@ -514,11 +488,8 @@ def make_string_row(row, fspec):
 
 # Making string as row for output and then writing it
 def write_row(fspec, row):
-    if settings['trim_empty'] and ' ' not in settings['input_separators']:
-        row = row.replace(' ', '')
     row = split_row(row)
 
-    row = get_aligned_row(row, fspec)
     str_row = make_string_row(row, fspec)
 
     settings['output'].write(str_row)
@@ -527,9 +498,8 @@ def write_row(fspec, row):
 def write_names(fspec):
     names = settings['names']
 
-    if settings['trim_empty'] and settings['fl_header']:
-        for i in range(len(names)):
-            names[i] = names[i].replace(' ', '')
+    for i in range(len(fspec) - len(settings['names'])):
+        settings['names'].append('')
 
     names = get_aligned_row(names, fspec)
     str_names = make_string_row(names, fspec)
@@ -537,77 +507,101 @@ def write_names(fspec):
     settings['output'].write(str_names)
 
 # Set the order of the columns in row according to --fields argument
-def rearrange_columns(row):
-    new_row = ''
+def rearrange_columns(row, fspec):
     row = split_row(row.rstrip('\n\r'))
+    if settings['trim_empty'] and ' ' not in settings['input_separators']:
+        for i in range(len(row)):
+            row[i] = row[i].strip()
 
-    zero_trigger = False
+    aligns_is_empty = False if aligns else True
 
-    dont_touch = []
+    fields = settings['fields']
+    not_zeros = []
 
-    new_row_left = []
-    new_row_mid = []
-    new_row_right = []
-    new_row_full = []
+    for f in fields:
+        if int(f[1:]) != 0:
+            not_zeros.append(int(f[1:])-1)
+    not_zeros = set(not_zeros)
 
-    try:
-        # Appending parts before [lrcj]0 and after if found
-        for i in range(len(settings['fields'])):
-            if int(settings['fields'][i][1:]) == 0:
-                zero_trigger = True
-                continue
-            if not zero_trigger:
-                new_row_left.append(row[int(settings['fields'][i][1:])-1])
-                dont_touch.append(int(settings['fields'][i][1:])-1)
-            else:
-                new_row_right.append(row[int(settings['fields'][i][1:])-1])
-                dont_touch.append(int(settings['fields'][i][1:])-1)
+    others = []
+    others_id = []
+    for i in range(len(row)):
+        if i not in not_zeros:
+            others.append(row[i])
+            others_id.append(i)
 
-        # Appending everything that not belongs to left or right parts
-        if zero_trigger:
-            for i in range(len(row)):
-                if i in dont_touch:
-                    continue
-                new_row_mid.append(row[i])
-    except:
-        perr('Invalid argument in option --fields', Exception('number of column in argument cannot be bigger than columns in lines inspection rows'))
-        sysexit(1)
+    columns_dict = {}
 
-    rml_fields[0] = len(new_row_left)
-    rml_fields[1] = len(new_row_mid)
-    rml_fields[2] = len(new_row_right)
+    for f in fields:
+        columns_dict[f] = ''
 
-    new_row_full.extend(new_row_left)
-    new_row_full.extend(new_row_mid)
-    new_row_full.extend(new_row_right)
+    for f in fields:
+        if int(f[1:]) != 0:
+            columns_dict[f] = row[int(f[1:])-1]
+        else:
+            columns_dict[f] = []
 
-    for i in range(len(new_row_full)):
-        new_row += new_row_full[i]
-        if i != len(new_row_full)-1:
-            new_row += settings['input_separators'][0]
+    new_row = []
+    i = 0
+    for c in columns_dict:
+        if type(columns_dict[c]) == str:
+            if c[0] == 'r':
+                columns_dict[c] = columns_dict[c].rjust(fspec[int(c[1:])-1])
+                aligns.append('r') if aligns_is_empty else 0
+            if c[0] == 'l':
+                columns_dict[c] = columns_dict[c].ljust(fspec[int(c[1:])-1])
+                aligns.append('l') if aligns_is_empty else 0
+            if c[0] == 'c':
+                columns_dict[c] = columns_dict[c].center(fspec[int(c[1:])-1])
+                aligns.append('c') if aligns_is_empty else 0
+            if c[0] == 'j':
+                columns_dict[c] = align_to_width(columns_dict[c], fspec[int(c[1:])-1])
+                aligns.append('j') if aligns_is_empty else 0
+            new_row.extend([columns_dict[c]])
+        else:
+            for j in range(len(others)):
+                if c[0] == 'r':
+                    columns_dict[c].append(others[j].rjust(fspec[others_id[j]]))
+                    aligns.append('r') if aligns_is_empty else 0
+                if c[0] == 'l':
+                    columns_dict[c].append(others[j].ljust(fspec[others_id[j]]))
+                    aligns.append('l') if aligns_is_empty else 0
+                if c[0] == 'c':
+                    columns_dict[c].append(others[j].center(fspec[others_id[j]]))
+                    aligns.append('c') if aligns_is_empty else 0
+                if c[0] == 'j':
+                    columns_dict[c].append(align_to_width(others[j], fspec[others_id[j]]))
+                    aligns.append('j') if aligns_is_empty else 0
+            new_row.extend(columns_dict[c])
+        i += 1
 
-    return new_row
+    new_row_s = ''
+    for r in new_row:
+        new_row_s += r
+        new_row_s += settings['input_separators'][0]
+    new_row_s = new_row_s[:-1]
+
+    return new_row_s
 
 def main():
     arg_parse()
     set_charset()
 
     rows = read_first_part()
+    print('--')
+    fspec = compute_fields(rows)
 
     if settings['fields'] != 'f0':
         new_rows = []
         for row in rows:
-            new_rows.append(rearrange_columns(row))
+            new_rows.append(rearrange_columns(row, fspec))
         rows = new_rows
+
+    fspec = compute_fields(rows)
 
     if settings['fl_header'] and rows:
         settings['names'] = split_row(rows[0])
         rows.pop(0)
-
-    fspec = compute_fields(rows)
-
-    if settings['fields'] == 'f0':
-        rml_fields[1] = len(fspec)
 
     if settings['borderline']:
         write_top(fspec)
