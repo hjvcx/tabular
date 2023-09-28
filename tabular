@@ -48,11 +48,11 @@ charset = {
     'bot_left': '',
     'bot_mid': '   ',
     'bot_right': '',
-    'v_filling': '   ',
-    'h_filling': '',
-    'lbv_filling': '',
-    'rbv_filling': '',
-    'bh_filling': ''
+    'v_fill': '   ',
+    'h_fill': '',
+    'lbv_fill': '',
+    'rbv_fill': '',
+    'bh_fill': ''
 }
 
 # Aligns for --names
@@ -93,13 +93,18 @@ def arg_parse():
             list_args = list(args['--output-style'])
             list_args_l = list(args['--output-style'].lower())
 
-            pattern = r'[AUauHBChbc]+'
-            matches = re.fullmatch(pattern, args['--output-style'])
+            pattern = r'[^auhcbAUHCB]'
+            matches = re.findall(pattern, args['--output-style'])
 
-            if not matches:
-                raise Exception('wrong character')
+            if matches:
+                m = ''.join(matches)
+                raise Exception(f'wrong character ({m})') if len(m) == 1 else Exception(f'wrong characters ({m})')
             if sorted(set(list_args_l)) != sorted(list_args_l):
-                raise Exception('duplicated characters')
+                la = list_args
+                for c in set(list_args):
+                    la.remove(c) if c in la else 0
+                a = ''.join(la)
+                raise Exception(f'duplicated character ({a})') if len(a) == 1 else Exception(f'wrong characters ({a})')
             if 'a' in set(list_args) and 'u' in set(list_args):
                 raise Exception('argument cannot contain "a" and "u" both')
             if 'a' not in set(list_args) and 'u' not in set(list_args):
@@ -130,15 +135,31 @@ def arg_parse():
 
     if args['--fields']:
         try:
-            pattern = r'^([lrjc]\d+)+$'
+            # pattern = r'([lrjc]\d+)+'
+            # matches = re.fullmatch(pattern, args['--fields'])
+
+            pattern = r'[^lrjc0-9]'
             matches = re.findall(pattern, args['--fields'])
-            for c in args['--fields']:
-                if c not in 'lrjc1234567890':
-                    raise Exception('wrong character')
-            if not matches:
-                raise Exception('bad structure')
-            # if args['--fields'].count('0') > 1:
-            #     raise Exception('cannot be more than one "0"')
+
+            pattern1 = r'[lrjc](?=[lrjc])'
+            matches1 = re.findall(pattern1, args['--fields'])
+
+            pattern2 = r'\d+'
+            matches2 = re.fullmatch(pattern2, args['--fields'])
+
+            pattern3 = r'\d+[lrjc]'
+            matches3 = re.fullmatch(pattern3, args['--fields'])
+
+            if matches:
+                m = ''.join(matches)
+                raise Exception(f'wrong character ({m})') if len(m) == 1 else Exception(f'wrong characters ({m})')
+            if matches1:
+                m = ''.join(matches1)
+                raise Exception(f'no field number for {m}')
+            if matches2:
+                raise Exception(f'argument has numbers only')
+            if matches3:
+                raise Exception(f'argument has number without letter before')
         except Exception as e:
             perr('Invalid argument in option --fields', e)
             exit_trigger = True
@@ -281,7 +302,7 @@ def write_top(fspec):
 
     line += charset['top_left']
     for i in range(len(fspec)):
-        line += charset['bh_filling']*fspec[i]
+        line += charset['bh_fill']*fspec[i]
         if i != len(fspec)-1:
             line += charset['top_mid']
     line += charset['top_right']
@@ -295,7 +316,7 @@ def write_mid(fspec):
 
     line += charset['mid_left']
     for i in range(len(fspec)):
-        line += charset['h_filling']*fspec[i]
+        line += charset['h_fill']*fspec[i]
         if i != len(fspec)-1:
             line += charset['mid_mid']
     line += charset['mid_right']
@@ -309,7 +330,7 @@ def write_bot(fspec):
 
     line += charset['bot_left']
     for i in range(len(fspec)):
-        line += charset['bh_filling']*fspec[i]
+        line += charset['bh_fill']*fspec[i]
         if i != len(fspec)-1:
             line += charset['bot_mid']
     line += charset['bot_right']
@@ -320,16 +341,16 @@ def write_bot(fspec):
 # Charset defining function for correct writing of table lines
 def set_charset():
     if settings['decostyle'] == 'ASCII' and settings['headerline']:
-        charset['h_filling'] = '-'
+        charset['h_fill'] = '-'
         charset['mid_mid'] = '---'
 
     if settings['decostyle'] == 'ASCII' and settings['columnline']:
-        charset['v_filling'] = ' | '
+        charset['v_fill'] = ' | '
 
     if settings['decostyle'] == 'ASCII' and settings['borderline']:
-        charset['bh_filling'] = '-'
-        charset['lbv_filling'] = '| '
-        charset['rbv_filling'] = ' |'
+        charset['bh_fill'] = '-'
+        charset['lbv_fill'] = '| '
+        charset['rbv_fill'] = ' |'
         charset['top_left'] = '+-'
         charset['top_right'] = '-+'
         charset['bot_left'] = '+-'
@@ -349,16 +370,16 @@ def set_charset():
         charset['bot_mid'] = '-+-'
 
     if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1:
-        charset['h_filling'] = '─'
+        charset['h_fill'] = '─'
         charset['mid_mid'] = '───'
     if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2:
-        charset['h_filling'] = '═'
+        charset['h_fill'] = '═'
         charset['mid_mid'] = '═══'
 
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
-        charset['bh_filling'] = '─'
-        charset['lbv_filling'] = '│ '
-        charset['rbv_filling'] = ' │'
+        charset['bh_fill'] = '─'
+        charset['lbv_fill'] = '│ '
+        charset['rbv_fill'] = ' │'
         charset['top_left'] = '┌─'
         charset['top_right'] = '─┐'
         charset['bot_left'] = '└─'
@@ -366,9 +387,9 @@ def set_charset():
         charset['top_mid'] = '───'
         charset['bot_mid'] = '───'
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
-        charset['bh_filling'] = '═'
-        charset['lbv_filling'] = '║ '
-        charset['rbv_filling'] = ' ║'
+        charset['bh_fill'] = '═'
+        charset['lbv_fill'] = '║ '
+        charset['rbv_fill'] = ' ║'
         charset['top_left'] = '╔═'
         charset['top_right'] = '═╗'
         charset['bot_left'] = '╚═'
@@ -377,25 +398,25 @@ def set_charset():
         charset['bot_mid'] = '═══'
 
     if settings['decostyle'] == 'Unicode' and settings['columnline'] == 1:
-        charset['v_filling'] = ' │ '
+        charset['v_fill'] = ' │ '
     if settings['decostyle'] == 'Unicode' and settings['columnline'] == 2:
-        charset['v_filling'] = ' ║ '
+        charset['v_fill'] = ' ║ '
 
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 1:
         charset['top_mid'] = '─┬─'
-        charset['v_filling'] = ' │ '
+        charset['v_fill'] = ' │ '
         charset['bot_mid'] = '─┴─'
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 2:
         charset['top_mid'] = '─╥─'
-        charset['v_filling'] = ' ║ '
+        charset['v_fill'] = ' ║ '
         charset['bot_mid'] = '─╨─'
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 1:
         charset['top_mid'] = '═╤═'
-        charset['v_filling'] = ' │ '
+        charset['v_fill'] = ' │ '
         charset['bot_mid'] = '═╧═'
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 2:
         charset['top_mid'] = '═╦═'
-        charset['v_filling'] = ' ║ '
+        charset['v_fill'] = ' ║ '
         charset['bot_mid'] = '═╩═'
 
     if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['headerline'] == 1:
@@ -472,7 +493,7 @@ def get_aligned_row(row, fspec):
 def make_string_row(row, fspec):
     str_row = ''
 
-    str_row += charset['lbv_filling']
+    str_row += charset['lbv_fill']
     for i in range(len(row)):
         if i < len(row):
             str_row += row[i]
@@ -480,8 +501,8 @@ def make_string_row(row, fspec):
             str_row += ''.ljust(fspec[i])
 
         if i != len(row)-1:
-            str_row += charset['v_filling']
-    str_row += charset['rbv_filling']
+            str_row += charset['v_fill']
+    str_row += charset['rbv_fill']
     str_row += '\n'
 
     return str_row
@@ -489,6 +510,10 @@ def make_string_row(row, fspec):
 # Making string as row for output and then writing it
 def write_row(fspec, row):
     row = split_row(row)
+
+    # row += [''] * (len(fspec)-len(row))
+    if ' ' in settings['input_separators']:
+        row = rearrange_columns(row, fspec)
 
     str_row = make_string_row(row, fspec)
 
@@ -508,10 +533,19 @@ def write_names(fspec):
 
 # Set the order of the columns in row according to --fields argument
 def rearrange_columns(row, fspec):
-    row = split_row(row.rstrip('\n\r'))
+    return_array_trigger = False
+
+    # Needed to call from write_row() if space is separator
+    if type(row) == str:
+        row = split_row(row.rstrip('\n\r'))
+    else:
+        return_array_trigger = True
+
     if settings['trim_empty'] and ' ' not in settings['input_separators']:
         for i in range(len(row)):
             row[i] = row[i].strip()
+
+    row += [''] * (len(fspec)-len(row))
 
     aligns_is_empty = False if aligns else True
 
@@ -535,11 +569,18 @@ def rearrange_columns(row, fspec):
     for f in fields:
         columns_dict[f] = ''
 
-    for f in fields:
-        if int(f[1:]) != 0:
-            columns_dict[f] = row[int(f[1:])-1]
-        else:
-            columns_dict[f] = []
+    f_num = 0
+    try:
+        for f in fields:
+            f_num = int(f[1:])
+            if f_num != 0:
+                columns_dict[f] = row[f_num-1]
+            else:
+                columns_dict[f] = []
+    except:
+        perr(f'Invalid argument in option --fields: field {f_num} is out of range of input stream')
+        sys.exit(1)
+
 
     new_row = []
     i = 0
@@ -581,21 +622,20 @@ def rearrange_columns(row, fspec):
         new_row_s += settings['input_separators'][0]
     new_row_s = new_row_s[:-1]
 
-    return new_row_s
+    return new_row_s if not return_array_trigger else new_row
 
 def main():
     arg_parse()
     set_charset()
 
     rows = read_first_part()
-    print('--')
+
     fspec = compute_fields(rows)
 
-    if settings['fields'] != 'f0':
-        new_rows = []
-        for row in rows:
-            new_rows.append(rearrange_columns(row, fspec))
-        rows = new_rows
+    new_rows = []
+    for row in rows:
+        new_rows.append(rearrange_columns(row, fspec))
+    rows = new_rows
 
     fspec = compute_fields(rows)
 
