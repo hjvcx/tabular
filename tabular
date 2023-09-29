@@ -493,10 +493,9 @@ def make_string_row(row, fspec):
 # Making string as row for output and then writing it
 def write_row(fspec, row):
     row = split_row(row)
-
-    # row += [''] * (len(fspec)-len(row))
-    if ' ' in settings['input_separators']:
-        row = rearrange_columns(row, fspec)
+    # If empty fields got cut...
+    # if ' ' in settings['input_separators']:
+    row = rearrange_columns(row, fspec)
 
     str_row = make_string_row(row, fspec)
 
@@ -521,8 +520,10 @@ def rearrange_columns(row, fspec):
     # Needed to call from write_row() if space is separator
     if type(row) == str:
         row = split_row(row.rstrip('\n\r'))
+        print('3', row)
     else:
         return_array_trigger = True
+        print('4', row)
 
     if settings['trim_empty'] and ' ' not in settings['input_separators']:
         for i in range(len(row)):
@@ -564,7 +565,6 @@ def rearrange_columns(row, fspec):
         perr(f'Invalid argument in option --fields: field {f_num} is out of range of input stream')
         sys.exit(1)
 
-
     new_row = []
     i = 0
     for c in settings['fields']:
@@ -599,6 +599,8 @@ def rearrange_columns(row, fspec):
             new_row.extend(columns_dict[c])
         i += 1
 
+    print('5', columns_dict, new_row, others)
+
     new_row_s = ''
     for r in new_row:
         new_row_s += r
@@ -615,12 +617,13 @@ def main():
 
     fspec = compute_fields(rows)
 
-    new_rows = []
+    rows_fspec = []
     for row in rows:
-        new_rows.append(rearrange_columns(row, fspec))
-    rows = new_rows
+        print('2', row)
+        rows_fspec.append(rearrange_columns(row, fspec))
 
-    fspec = compute_fields(rows)
+    print('6', rows_fspec)
+    fspec = compute_fields(rows_fspec)
 
     if settings['fl_header'] and rows:
         settings['names'] = split_row(rows[0])
