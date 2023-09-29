@@ -63,15 +63,6 @@ def pretty_printer(data):
     pp = pprint.PrettyPrinter(stream=sys.stderr)
     pp.pprint(data)
 
-# sys.exit() + streams closing
-def sysexit(code):
-    if settings['input']:
-        settings['input'].close()
-    if settings['output']:
-        settings['output'].close()
-
-    sys.exit(code)
-
 # Stderr print function
 def perr(message, exception=None):
         if exception:
@@ -167,16 +158,10 @@ def arg_parse():
         settings['fields'] = re.findall(r'([a-zA-Z]\d+)', args['--fields'])
 
     if args['--lines-inspect']:
-        try:
-            pattern = r'^\d+$'
-            matches = re.findall(pattern, args['--lines-inspect'])
-            if not matches:
-                raise Exception('argument must be a number (0 or higher)')
-        except Exception as e:
-            perr('Invalid argument in option --lines-inspect', e)
+        if not re.fullmatch(r'[0-9]+', args['--lines-inspect']):
+            perr('Invalid argument in option --lines-inspect: argument must be a natural number')
             exit_trigger = True
-
-        if not exit_trigger:
+        else:
             settings['lines_inspect'] = int(args['--lines-inspect'])
 
     if not args['--sticky-separators']:
@@ -195,13 +180,11 @@ def arg_parse():
             settings['trim_empty'] = False
 
     if args['--first-line-header']:
-        try:
-            if settings['names']:
-                raise Exception('cannot be used with --names')
-            settings['fl_header'] = True
-        except Exception as e:
-            perr('Invalid --first-line-header usage', e)
+        if settings['names']:
+            perr('Invalid --first-line-header usage: cannot be used with --names')
             exit_trigger = True
+        else:
+            settings['fl_header'] = True
 
     if args['--version']:
         print('tabular v0.0.1')
@@ -265,7 +248,7 @@ def split_row(row):
         for d in settings['input_separators']:
             row = row.replace(d, rpl)
         if settings['sticky_separators']:
-            a_row = list(filter(is_not_empty, row.split(rpl)))
+            a_row = list(filter(lambda x: x != '', row.split(rpl)))
         else:
             a_row = row.split(rpl)
 
@@ -584,7 +567,7 @@ def rearrange_columns(row, fspec):
 
     new_row = []
     i = 0
-    for c in columns_dict:
+    for c in settings['fields']:
         if type(columns_dict[c]) == str:
             if c[0] == 'r':
                 columns_dict[c] = columns_dict[c].rjust(fspec[int(c[1:])-1])
