@@ -20,6 +20,7 @@ from docopt import docopt
 import pprint
 import sys
 import re
+import copy
 
 settings = {
     'decostyle': '',
@@ -255,12 +256,13 @@ def split_row(row):
     return a_row
 
 # Calculating maximum lengths of column values
-def compute_fields(rows):
+def compute_fields(_rows):
+    rows = copy.deepcopy(_rows)
     s_rows = []
     if settings['names'] and aligns:
         s_rows.append(settings['names'])
     for row in rows:
-        s_rows.append(split_row(row))
+        s_rows.append(row)
     rows = s_rows
 
     if settings['trim_empty']:
@@ -492,11 +494,6 @@ def make_string_row(row, fspec):
 
 # Making string as row for output and then writing it
 def write_row(fspec, row):
-    row = split_row(row)
-    # If empty fields got cut...
-    # if ' ' in settings['input_separators']:
-    row = rearrange_columns(row, fspec)
-
     str_row = make_string_row(row, fspec)
 
     settings['output'].write(str_row)
@@ -515,16 +512,6 @@ def write_names(fspec):
 
 # Set the order of the columns in row according to --fields argument
 def rearrange_columns(row, fspec):
-    return_array_trigger = False
-
-    # Needed to call from write_row() if space is separator
-    if type(row) == str:
-        row = split_row(row.rstrip('\n\r'))
-        print('3', row)
-    else:
-        return_array_trigger = True
-        print('4', row)
-
     if settings['trim_empty'] and ' ' not in settings['input_separators']:
         for i in range(len(row)):
             row[i] = row[i].strip()
@@ -599,15 +586,7 @@ def rearrange_columns(row, fspec):
             new_row.extend(columns_dict[c])
         i += 1
 
-    print('5', columns_dict, new_row, others)
-
-    new_row_s = ''
-    for r in new_row:
-        new_row_s += r
-        new_row_s += settings['input_separators'][0]
-    new_row_s = new_row_s[:-1]
-
-    return new_row_s if not return_array_trigger else new_row
+    return new_row
 
 def main():
     arg_parse()
@@ -615,18 +594,20 @@ def main():
 
     rows = read_first_part()
 
+    for i in range(len(rows)):
+        rows[i] = split_row(rows[i].rstrip('\n\r'))
+
     fspec = compute_fields(rows)
 
     rows_fspec = []
     for row in rows:
-        print('2', row)
         rows_fspec.append(rearrange_columns(row, fspec))
+    rows = rows_fspec
 
-    print('6', rows_fspec)
-    fspec = compute_fields(rows_fspec)
+    fspec = compute_fields(rows)
 
     if settings['fl_header'] and rows:
-        settings['names'] = split_row(rows[0])
+        settings['names'] = rows[0]
         rows.pop(0)
 
     if settings['borderline']:
