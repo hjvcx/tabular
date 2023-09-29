@@ -1,1 +1,1 @@
-Invalid argument in option --fields: number of row in argument cannot be bigger than columns in lines inspection rows
+Invalid argument in option --fields: field 99 is out of range of input stream
