@@ -147,7 +147,7 @@ def arg_parse():
                 raise Exception(f'wrong character ({m})') if len(m) == 1 else Exception(f'wrong characters ({m})')
             if matches1:
                 m = ''.join(matches1)
-                raise Exception(f'no field number for {m}')
+                raise Exception(f'no field number for \'{m}\'')
             if matches2:
                 raise Exception(f'argument has numbers only')
             if matches3:
@@ -233,10 +233,6 @@ def read_first_part():
             rows.append(row.rstrip('\n\r'))
 
     return rows
-
-# Function for filtering empty strings in splitted row array
-def is_not_empty(string):
-    return string != ''
 
 # Making string array from rows divided by --input-separator values
 def split_row(row):
