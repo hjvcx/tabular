@@ -1,0 +1,9 @@
+Package: tabular
+Version: 1.0-1
+Maintainer: hjvcx <dania005888@gmail.com>
+Architecture: all
+Section: text
+Priority: optional
+Depends: python3
+Description: Converting csv data into tabular view.
+ The script converts csv data into tabular view with required options.
