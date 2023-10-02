@@ -623,7 +623,8 @@ def main():
             if not row:
                 break
             if settings['fields'] != 'f0':
-                row = rearrange_columns(row)
+                row = split_row(row)
+                row = rearrange_columns(row, fspec)
             write_row(fspec, row)
 
     if settings['borderline']:
