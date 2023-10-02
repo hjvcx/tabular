@@ -188,7 +188,7 @@ def arg_parse():
             settings['fl_header'] = True
 
     if args['--version']:
-        print('tabular v0.0.1')
+        print('tabular v1.0.0')
         sys.exit()
 
     if exit_trigger:
