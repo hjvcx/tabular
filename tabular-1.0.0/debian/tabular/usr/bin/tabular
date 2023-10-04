@@ -1,0 +1,639 @@
+#!/usr/bin/python3
+# vim: set expandtab:sw=4:ts=4
+'''
+Usage:
+    tabular [options] [<input> [<output>]]
+
+Options:
+    -o <string>, --output-style <string>        Defines style for table. [default: uhC]
+    -i <string>, --input-separator <string>     Defines characters being used as separators. [default:  \t]
+    -s, --sticky-separators                     Multiple separators as one. [default: True]
+    -t, --trim-empty                            Deletes empty fields at beginning and end of entries. [default: True]
+    -n <string>, --names <string>               Defines names of columns (first character of string stands as separator).
+    -1, --first-line-header                     If enabled, makes first string perceived as header.
+    -f <string>, --fields <string>              Defines specification of output. [default: l0]
+    -L <number>, --lines-inspect <number>       Defines number of strings being counted for calculating field sizes. [default: 0]
+    -h, --help                                  Open this message.
+    -v, --version                               Version check and finish program execution.
+'''
+
+from docopt import docopt
+import pprint
+import sys
+import re
+import copy
+
+settings = {
+    'decostyle': '',
+    'headerline': 0,
+    'columnline': 0,
+    'borderline': 0,
+    'fields': ['l0'],
+    'lines_inspect': 0,
+    'names': [],
+    'input_separators': [' '],
+    'sticky_separators': True,
+    'trim_empty': True,
+    'fl_header': False,
+    'input': None,
+    'output': None
+}
+
+# Set of chars for drawing a table
+charset = {
+    'top_left': '',
+    'top_mid': '   ',
+    'top_right': '',
+    'mid_left': '',
+    'mid_mid': '   ',
+    'mid_right': '',
+    'bot_left': '',
+    'bot_mid': '   ',
+    'bot_right': '',
+    'v_fill': '   ',
+    'h_fill': '',
+    'lbv_fill': '',
+    'rbv_fill': '',
+    'bh_fill': ''
+}
+
+# Aligns for --names
+aligns = []
+
+# Pretty print function
+def pretty_printer(data):
+    pp = pprint.PrettyPrinter(stream=sys.stderr)
+    pp.pprint(data)
+
+# Stderr print function
+def perr(message, exception=None):
+        if exception:
+            msg = f'{message}: {exception}'
+        else:
+            msg = message
+        print(msg, file=sys.stderr)
+
+# Argument parsing function
+def arg_parse():
+    # Getting parameters and options dictionary then print it (for understanding)
+    args = docopt(__doc__)
+    # pretty_printer(args)
+    exit_trigger = False
+
+    # Working with options and parameters using conditions
+    if args['--output-style']:
+        try:
+            list_args = list(args['--output-style'])
+            list_args_l = list(args['--output-style'].lower())
+
+            pattern = r'[^auhcbAUHCB]'
+            matches = re.findall(pattern, args['--output-style'])
+
+            if matches:
+                m = ''.join(matches)
+                raise Exception(f'wrong character ({m})') if len(m) == 1 else Exception(f'wrong characters ({m})')
+            if sorted(set(list_args_l)) != sorted(list_args_l):
+                la = list_args
+                for c in set(list_args):
+                    la.remove(c) if c in la else 0
+                a = ''.join(la)
+                raise Exception(f'duplicated character ({a})') if len(a) == 1 else Exception(f'wrong characters ({a})')
+            if 'a' in set(list_args) and 'u' in set(list_args):
+                raise Exception('argument cannot contain "a" and "u" both')
+            if 'a' not in set(list_args) and 'u' not in set(list_args):
+                raise Exception('argument must contain "a" or "u"')
+        except Exception as e:
+            perr('Invalid argument in option --output-style', e)
+            exit_trigger = True
+
+        if 'a' in list_args:
+            settings['decostyle'] = 'ASCII'
+        else:
+            settings['decostyle'] = 'Unicode'
+
+        if 'h' in list_args:
+            settings['headerline'] = 1
+        elif 'H' in list_args:
+            settings['headerline'] = 2
+
+        if 'c' in list_args:
+            settings['columnline'] = 1
+        elif 'C' in list_args:
+            settings['columnline'] = 2
+
+        if 'b' in list_args:
+            settings['borderline'] = 1
+        elif 'B' in list_args:
+            settings['borderline'] = 2
+
+    if args['--fields']:
+        try:
+            # pattern = r'([lrjc]\d+)+'
+            # matches = re.fullmatch(pattern, args['--fields'])
+
+            pattern = r'[^lrjc0-9]'
+            matches = re.findall(pattern, args['--fields'])
+
+            pattern1 = r'[lrjc](?=[lrjc])'
+            matches1 = re.findall(pattern1, args['--fields'])
+
+            pattern2 = r'\d+'
+            matches2 = re.fullmatch(pattern2, args['--fields'])
+
+            pattern3 = r'\d+[lrjc]'
+            matches3 = re.fullmatch(pattern3, args['--fields'])
+
+            if matches:
+                m = ''.join(matches)
+                raise Exception(f'wrong character ({m})') if len(m) == 1 else Exception(f'wrong characters ({m})')
+            if matches1:
+                m = ''.join(matches1)
+                raise Exception(f'no field number for \'{m}\'')
+            if matches2:
+                raise Exception(f'argument has numbers only')
+            if matches3:
+                raise Exception(f'argument has number without letter before')
+        except Exception as e:
+            perr('Invalid argument in option --fields', e)
+            exit_trigger = True
+
+        settings['fields'] = re.findall(r'([a-zA-Z]\d+)', args['--fields'])
+
+    if args['--lines-inspect']:
+        if not re.fullmatch(r'[0-9]+', args['--lines-inspect']):
+            perr('Invalid argument in option --lines-inspect: argument must be a natural number')
+            exit_trigger = True
+        else:
+            settings['lines_inspect'] = int(args['--lines-inspect'])
+
+    if not args['--sticky-separators']:
+        if not args['--input-separator'] == ' \t':
+            settings['sticky_separators'] = False
+
+    if args['--input-separator']:
+        settings['input_separators'] = list(args['--input-separator'])
+
+    if args['--names']:
+        delimiter = args["--names"][0]
+        settings['names'] = args['--names'][1:].split(delimiter)
+
+    if not args['--trim-empty']:
+        if not args['--input-separator'] == ' \t':
+            settings['trim_empty'] = False
+
+    if args['--first-line-header']:
+        if settings['names']:
+            perr('Invalid --first-line-header usage: cannot be used with --names')
+            exit_trigger = True
+        else:
+            settings['fl_header'] = True
+
+    if args['--version']:
+        print('tabular v1.0.0')
+        sys.exit()
+
+    if exit_trigger:
+        sys.exit(1)
+
+    # Trying to initialize input and output streams
+    try:
+        if args['<input>']:
+            settings['input'] = open(args['<input>'])
+        else:
+            settings['input'] = sys.stdin
+    except Exception as e:
+        perr('Cannot open input', e)
+        sys.exit(1)
+
+    try:
+        if args['<output>']:
+            settings['output'] = open(args['<output>'], 'w+')
+        else:
+            settings['output'] = sys.stdout
+    except Exception as e:
+        perr('Cannot open output', e)
+        sys.exit(1)
+
+    # pretty_printer(settings)
+
+# Reading first n rows where n is -L option value
+def read_first_part():
+    rows = []
+
+    if settings['lines_inspect'] != 0:
+        for _ in range(settings['lines_inspect']):
+            row = settings['input'].readline()
+            if not row:
+                break
+            rows.append(row.rstrip('\n\r'))
+    else:
+        while True:
+            row = settings['input'].readline()
+            if not row:
+                break
+            rows.append(row.rstrip('\n\r'))
+
+    return rows
+
+# Making string array from rows divided by --input-separator values
+def split_row(row):
+    a_row = []
+    rpl = settings['input_separators'][0]
+
+    if settings['input_separators'] == [' ', '\t']:
+        a_row = row.split()
+    else:
+        for d in settings['input_separators']:
+            row = row.replace(d, rpl)
+        if settings['sticky_separators']:
+            a_row = list(filter(lambda x: x != '', row.split(rpl)))
+        else:
+            a_row = row.split(rpl)
+
+    return a_row
+
+# Calculating maximum lengths of column values
+def compute_fields(_rows):
+    rows = copy.deepcopy(_rows)
+    s_rows = []
+    if settings['names'] and aligns:
+        s_rows.append(settings['names'])
+    for row in rows:
+        s_rows.append(row)
+    rows = s_rows
+
+    if settings['trim_empty']:
+        for i in range(len(rows)):
+            for j in range(len(rows[i])):
+                rows[i][j] = rows[i][j].strip()
+
+    max_ls = []
+
+    if rows:
+        for i in range(max(map(len, rows))):
+            max_l = max(len(row[i]) for row in rows if i < len(row))
+            max_ls.append(max_l)
+    else:
+        max_ls = [0]
+
+    return max_ls
+
+# Function of writing top part of borderline
+def write_top(fspec):
+    line = ''
+
+    line += charset['top_left']
+    for i in range(len(fspec)):
+        line += charset['bh_fill']*fspec[i]
+        if i != len(fspec)-1:
+            line += charset['top_mid']
+    line += charset['top_right']
+    line += '\n'
+
+    settings['output'].write(line)
+
+# Function of writing headerline
+def write_mid(fspec):
+    line = ''
+
+    line += charset['mid_left']
+    for i in range(len(fspec)):
+        line += charset['h_fill']*fspec[i]
+        if i != len(fspec)-1:
+            line += charset['mid_mid']
+    line += charset['mid_right']
+    line += '\n'
+
+    settings['output'].write(line)
+
+# Function of writing bottom part of borderline
+def write_bot(fspec):
+    line = ''
+
+    line += charset['bot_left']
+    for i in range(len(fspec)):
+        line += charset['bh_fill']*fspec[i]
+        if i != len(fspec)-1:
+            line += charset['bot_mid']
+    line += charset['bot_right']
+    line += '\n'
+
+    settings['output'].write(line)
+
+# Charset defining function for correct writing of table lines
+def set_charset():
+    if settings['decostyle'] == 'ASCII' and settings['headerline']:
+        charset['h_fill'] = '-'
+        charset['mid_mid'] = '---'
+
+    if settings['decostyle'] == 'ASCII' and settings['columnline']:
+        charset['v_fill'] = ' | '
+
+    if settings['decostyle'] == 'ASCII' and settings['borderline']:
+        charset['bh_fill'] = '-'
+        charset['lbv_fill'] = '| '
+        charset['rbv_fill'] = ' |'
+        charset['top_left'] = '+-'
+        charset['top_right'] = '-+'
+        charset['bot_left'] = '+-'
+        charset['bot_right'] = '-+'
+        charset['top_mid'] = '---'
+        charset['bot_mid'] = '---'
+
+    if settings['decostyle'] == 'ASCII' and settings['headerline'] and settings['columnline']:
+        charset['mid_mid'] = '-+-'
+
+    if settings['decostyle'] == 'ASCII' and settings['headerline'] and settings['borderline']:
+        charset['mid_left'] = '+-'
+        charset['mid_right'] = '-+'
+
+    if settings['decostyle'] == 'ASCII' and settings['columnline'] and settings['borderline']:
+        charset['top_mid'] = '-+-'
+        charset['bot_mid'] = '-+-'
+
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1:
+        charset['h_fill'] = '─'
+        charset['mid_mid'] = '───'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2:
+        charset['h_fill'] = '═'
+        charset['mid_mid'] = '═══'
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1:
+        charset['bh_fill'] = '─'
+        charset['lbv_fill'] = '│ '
+        charset['rbv_fill'] = ' │'
+        charset['top_left'] = '┌─'
+        charset['top_right'] = '─┐'
+        charset['bot_left'] = '└─'
+        charset['bot_right'] = '─┘'
+        charset['top_mid'] = '───'
+        charset['bot_mid'] = '───'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2:
+        charset['bh_fill'] = '═'
+        charset['lbv_fill'] = '║ '
+        charset['rbv_fill'] = ' ║'
+        charset['top_left'] = '╔═'
+        charset['top_right'] = '═╗'
+        charset['bot_left'] = '╚═'
+        charset['bot_right'] = '═╝'
+        charset['top_mid'] = '═══'
+        charset['bot_mid'] = '═══'
+
+    if settings['decostyle'] == 'Unicode' and settings['columnline'] == 1:
+        charset['v_fill'] = ' │ '
+    if settings['decostyle'] == 'Unicode' and settings['columnline'] == 2:
+        charset['v_fill'] = ' ║ '
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 1:
+        charset['top_mid'] = '─┬─'
+        charset['v_fill'] = ' │ '
+        charset['bot_mid'] = '─┴─'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['columnline'] == 2:
+        charset['top_mid'] = '─╥─'
+        charset['v_fill'] = ' ║ '
+        charset['bot_mid'] = '─╨─'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 1:
+        charset['top_mid'] = '═╤═'
+        charset['v_fill'] = ' │ '
+        charset['bot_mid'] = '═╧═'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['columnline'] == 2:
+        charset['top_mid'] = '═╦═'
+        charset['v_fill'] = ' ║ '
+        charset['bot_mid'] = '═╩═'
+
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['headerline'] == 1:
+        charset['mid_left'] = '├─'
+        charset['mid_right'] = '─┤'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 1 and settings['headerline'] == 2:
+        charset['mid_left'] = '╞═'
+        charset['mid_right'] = '═╡'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['headerline'] == 1:
+        charset['mid_left'] = '╟─'
+        charset['mid_right'] = '─╢'
+    if settings['decostyle'] == 'Unicode' and settings['borderline'] == 2 and settings['headerline'] == 2:
+        charset['mid_left'] = '╠═'
+        charset['mid_right'] = '═╣'
+
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1 and settings['columnline'] == 1:
+        charset['mid_mid'] = '─┼─'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 1 and settings['columnline'] == 2:
+        charset['mid_mid'] = '─╫─'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2 and settings['columnline'] == 1:
+        charset['mid_mid'] = '═╪═'
+    if settings['decostyle'] == 'Unicode' and settings['headerline'] == 2 and settings['columnline'] == 2:
+        charset['mid_mid'] = '═╬═'
+
+'''
+─ ━ │ ┃ ┄ ┅ ┆ ┇ ┈ ┉ ┊ ┋ ┌ ┍ ┎ ┏ ┐ ┑ ┒ ┓ └ ┕ ┖ ┗ ┘ ┙ ┚ ┛ ├ ┝ ┞ ┟ ┠ ┡ ┢ ┣ ┤ ┥ ┦ ┧ ┨ ┩ ┪ ┫ ┬ ┭ ┮ ┯ ┰ ┱ ┲ ┳
+ ┴ ┵ ┶ ┷ ┸ ┹ ┺ ┻ ┼ ┽ ┾ ┿ ╀ ╁ ╂ ╃ ╄ ╅ ╆ ╇ ╈ ╉ ╊ ╋ ╌ ╍ ╎ ╏ ═ ║ ╒ ╓ ╔ ╕ ╖ ╗ ╘ ╙ ╚ ╛ ╜ ╝ ╞ ╟ ╠ ╡ ╢ ╣ ╤ ╥ ╦ ╧
+   ╨ ╩ ╪ ╫ ╬ ╭ ╮ ╯ ╰ ╱ ╲ ╳ ╴ ╵ ╶ ╷ ╸ ╹ ╺ ╻ ╼ ╽ ╾ ╿ ▀ ▁ ▂ ▃ ▄ ▅ ▆ ▇ █ ▉ ▊ ▋ ▌ ▍ ▎ ▏ ▐ ░ ▒ ▓ ▔ ▕ 𝌴
+'''
+
+# Aligning to width function (j argument of --fields option)
+def align_to_width(row, width):
+    row = row.split()
+    num_spaces = len(row)-1
+    len_words = 0
+
+    for r in row:
+        len_words += len(r)
+
+    len_spaces = width - len_words
+    if num_spaces > 0:
+        width_spaces = len_spaces // num_spaces
+        extra_spaces = len_spaces % num_spaces
+    else:
+        width_spaces = 1
+        extra_spaces = 0
+
+    for i in range(extra_spaces):
+        row[i] += ' '
+    new_row = (' '*width_spaces).join(row)
+    new_row = new_row.ljust(width)
+
+    return new_row
+
+# Making new_row array with correct alignment for every column
+def get_aligned_row(row, fspec):
+    new_row = []
+    try:
+        for i in range(len(aligns)):
+            if aligns[i] == 'r':
+                new_row.append(row[i].rjust(fspec[i]))
+            if aligns[i] == 'l':
+                new_row.append(row[i].ljust(fspec[i]))
+            if aligns[i] == 'c':
+                new_row.append(row[i].center(fspec[i]))
+            if aligns[i] == 'j':
+                new_row.append(align_to_width(row[i], fspec[i]))
+    except:
+        print(new_row, row, fspec)
+
+    return new_row
+
+# Make a string from array to write
+def make_string_row(row, fspec):
+    str_row = ''
+
+    str_row += charset['lbv_fill']
+    for i in range(len(row)):
+        if i < len(row):
+            str_row += row[i]
+        else:
+            str_row += ''.ljust(fspec[i])
+
+        if i != len(row)-1:
+            str_row += charset['v_fill']
+    str_row += charset['rbv_fill']
+    str_row += '\n'
+
+    return str_row
+
+# Making string as row for output and then writing it
+def write_row(fspec, row):
+    str_row = make_string_row(row, fspec)
+
+    settings['output'].write(str_row)
+
+# Making names and delimiter strings and then writing it
+def write_names(fspec):
+    names = settings['names']
+
+    for i in range(len(fspec) - len(settings['names'])):
+        settings['names'].append('')
+
+    names = get_aligned_row(names, fspec)
+    str_names = make_string_row(names, fspec)
+
+    settings['output'].write(str_names)
+
+# Set the order of the columns in row according to --fields argument
+def rearrange_columns(row, fspec):
+    if settings['trim_empty'] and ' ' not in settings['input_separators']:
+        for i in range(len(row)):
+            row[i] = row[i].strip()
+
+    row += [''] * (len(fspec)-len(row))
+
+    aligns_is_empty = False if aligns else True
+
+    fields = settings['fields']
+    not_zeros = []
+
+    for f in fields:
+        if int(f[1:]) != 0:
+            not_zeros.append(int(f[1:])-1)
+    not_zeros = set(not_zeros)
+
+    others = []
+    others_id = []
+    for i in range(len(row)):
+        if i not in not_zeros:
+            others.append(row[i])
+            others_id.append(i)
+
+    columns_dict = {}
+
+    for f in fields:
+        columns_dict[f] = ''
+
+    f_num = 0
+    try:
+        for f in fields:
+            f_num = int(f[1:])
+            if f_num != 0:
+                columns_dict[f] = row[f_num-1]
+            else:
+                columns_dict[f] = []
+    except:
+        perr(f'Invalid argument in option --fields: field {f_num} is out of range of input stream')
+        sys.exit(1)
+
+    new_row = []
+    i = 0
+    try:
+        for c in settings['fields']:
+            if type(columns_dict[c]) == str:
+                intc = [c, int(c[1:]), columns_dict[c]]
+                if c[0] == 'r':
+                    columns_dict[c] = columns_dict[c].rjust(fspec[int(c[1:])-1])
+                    aligns.append('r') if aligns_is_empty else 0
+                if c[0] == 'l':
+                    columns_dict[c] = columns_dict[c].ljust(fspec[int(c[1:])-1])
+                    aligns.append('l') if aligns_is_empty else 0
+                if c[0] == 'c':
+                    columns_dict[c] = columns_dict[c].center(fspec[int(c[1:])-1])
+                    aligns.append('c') if aligns_is_empty else 0
+                if c[0] == 'j':
+                    columns_dict[c] = align_to_width(columns_dict[c], fspec[int(c[1:])-1])
+                    aligns.append('j') if aligns_is_empty else 0
+                new_row.extend([columns_dict[c]])
+            else:
+                for j in range(len(others)):
+                    if c[0] == 'r':
+                        columns_dict[c].append(others[j].rjust(fspec[others_id[j]]))
+                        aligns.append('r') if aligns_is_empty else 0
+                    if c[0] == 'l':
+                        columns_dict[c].append(others[j].ljust(fspec[others_id[j]]))
+                        aligns.append('l') if aligns_is_empty else 0
+                    if c[0] == 'c':
+                        columns_dict[c].append(others[j].center(fspec[others_id[j]]))
+                        aligns.append('c') if aligns_is_empty else 0
+                    if c[0] == 'j':
+                        columns_dict[c].append(align_to_width(others[j], fspec[others_id[j]]))
+                        aligns.append('j') if aligns_is_empty else 0
+                new_row.extend(columns_dict[c])
+            i += 1
+    except:
+        perr('--fields error')
+        sys.exit(1)
+
+    return new_row
+
+def main():
+    arg_parse()
+    set_charset()
+
+    rows = read_first_part()
+
+    for i in range(len(rows)):
+        rows[i] = split_row(rows[i].rstrip('\n\r'))
+
+    fspec_first = compute_fields(rows)
+
+    rows_fspec = []
+    for row in rows:
+        rows_fspec.append(rearrange_columns(row, fspec_first))
+    rows = rows_fspec
+
+    fspec = compute_fields(rows)
+
+    if settings['fl_header'] and rows:
+        settings['names'] = rows[0]
+        rows.pop(0)
+
+    if settings['borderline']:
+        write_top(fspec)
+
+    if settings['fl_header'] or settings['names']:
+        write_names(fspec)
+        if settings['headerline']:
+            write_mid(fspec)
+
+    for row in rows:
+        write_row(fspec, row)
+
+    if settings['lines_inspect'] != 0:
+        while True:
+            row = settings['input'].readline()
+            if not row:
+                break
+            if settings['fields'] != 'f0':
+                row = split_row(row)
+                row = rearrange_columns(row, fspec_first)
+            write_row(fspec, row)
+
+    if settings['borderline']:
+        write_bot(fspec)
+
+main()

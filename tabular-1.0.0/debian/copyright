@@ -1,7 +1,11 @@
-The MIT License (MIT)
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: tabular
+Upstream-Contact: hjvcx (dania005@gmail.com)
+Source: https://github.com/hjvcx/tabular
 
-Copyright © 2023 hjvcx
-
+Files: *
+Copyright: 2023 hjvcx
+License: permissive
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the “Software”), to deal in the
 Software without restriction, including without limitation the rights to use,

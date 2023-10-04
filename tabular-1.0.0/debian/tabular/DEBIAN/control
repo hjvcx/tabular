@@ -1,9 +1,10 @@
 Package: tabular
 Version: 1.0-1
+Architecture: amd64
 Maintainer: hjvcx <dania005888@gmail.com>
-Architecture: all
+Installed-Size: 31
+Depends: python3, python3-docopt
 Section: text
 Priority: optional
-Depends: python3
 Description: Converting csv data into tabular view.
  The script converts csv data into tabular view with required options.

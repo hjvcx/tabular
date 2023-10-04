@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# vim: set expandtab:sw=4:ts=4
 '''
 Usage:
     tabular [options] [<input> [<output>]]
@@ -550,37 +551,42 @@ def rearrange_columns(row, fspec):
 
     new_row = []
     i = 0
-    for c in settings['fields']:
-        if type(columns_dict[c]) == str:
-            if c[0] == 'r':
-                columns_dict[c] = columns_dict[c].rjust(fspec[int(c[1:])-1])
-                aligns.append('r') if aligns_is_empty else 0
-            if c[0] == 'l':
-                columns_dict[c] = columns_dict[c].ljust(fspec[int(c[1:])-1])
-                aligns.append('l') if aligns_is_empty else 0
-            if c[0] == 'c':
-                columns_dict[c] = columns_dict[c].center(fspec[int(c[1:])-1])
-                aligns.append('c') if aligns_is_empty else 0
-            if c[0] == 'j':
-                columns_dict[c] = align_to_width(columns_dict[c], fspec[int(c[1:])-1])
-                aligns.append('j') if aligns_is_empty else 0
-            new_row.extend([columns_dict[c]])
-        else:
-            for j in range(len(others)):
+    try:
+        for c in settings['fields']:
+            if type(columns_dict[c]) == str:
+                intc = [c, int(c[1:]), columns_dict[c]]
                 if c[0] == 'r':
-                    columns_dict[c].append(others[j].rjust(fspec[others_id[j]]))
+                    columns_dict[c] = columns_dict[c].rjust(fspec[int(c[1:])-1])
                     aligns.append('r') if aligns_is_empty else 0
                 if c[0] == 'l':
-                    columns_dict[c].append(others[j].ljust(fspec[others_id[j]]))
+                    columns_dict[c] = columns_dict[c].ljust(fspec[int(c[1:])-1])
                     aligns.append('l') if aligns_is_empty else 0
                 if c[0] == 'c':
-                    columns_dict[c].append(others[j].center(fspec[others_id[j]]))
+                    columns_dict[c] = columns_dict[c].center(fspec[int(c[1:])-1])
                     aligns.append('c') if aligns_is_empty else 0
                 if c[0] == 'j':
-                    columns_dict[c].append(align_to_width(others[j], fspec[others_id[j]]))
+                    columns_dict[c] = align_to_width(columns_dict[c], fspec[int(c[1:])-1])
                     aligns.append('j') if aligns_is_empty else 0
-            new_row.extend(columns_dict[c])
-        i += 1
+                new_row.extend([columns_dict[c]])
+            else:
+                for j in range(len(others)):
+                    if c[0] == 'r':
+                        columns_dict[c].append(others[j].rjust(fspec[others_id[j]]))
+                        aligns.append('r') if aligns_is_empty else 0
+                    if c[0] == 'l':
+                        columns_dict[c].append(others[j].ljust(fspec[others_id[j]]))
+                        aligns.append('l') if aligns_is_empty else 0
+                    if c[0] == 'c':
+                        columns_dict[c].append(others[j].center(fspec[others_id[j]]))
+                        aligns.append('c') if aligns_is_empty else 0
+                    if c[0] == 'j':
+                        columns_dict[c].append(align_to_width(others[j], fspec[others_id[j]]))
+                        aligns.append('j') if aligns_is_empty else 0
+                new_row.extend(columns_dict[c])
+            i += 1
+    except:
+        perr('--fields error')
+        sys.exit(1)
 
     return new_row
 
@@ -593,11 +599,11 @@ def main():
     for i in range(len(rows)):
         rows[i] = split_row(rows[i].rstrip('\n\r'))
 
-    fspec = compute_fields(rows)
+    fspec_first = compute_fields(rows)
 
     rows_fspec = []
     for row in rows:
-        rows_fspec.append(rearrange_columns(row, fspec))
+        rows_fspec.append(rearrange_columns(row, fspec_first))
     rows = rows_fspec
 
     fspec = compute_fields(rows)
@@ -623,7 +629,8 @@ def main():
             if not row:
                 break
             if settings['fields'] != 'f0':
-                row = rearrange_columns(row)
+                row = split_row(row)
+                row = rearrange_columns(row, fspec_first)
             write_row(fspec, row)
 
     if settings['borderline']:

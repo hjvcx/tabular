@@ -1,2 +1,0 @@
-docopt==0.6.2
-pkg_resources==0.0.0

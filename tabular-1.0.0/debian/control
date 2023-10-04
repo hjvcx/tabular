@@ -1,0 +1,13 @@
+Source: tabular
+Section: text
+Priority: optional
+Maintainer: hjvcx <dania005888@gmail.com>
+Build-Depends: debhelper (>= 13~), debhelper-compat (= 13)
+Standards-Version: 4.6.2
+
+Package: tabular
+Section: text
+Architecture: amd64
+Depends: ${misc:Depends}, python3, python3-docopt
+Description: Converting csv data into tabular view.
+ The script converts csv data into tabular view with required options.
