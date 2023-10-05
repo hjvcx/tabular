@@ -1,21 +1,14 @@
 *.pout
 *.perr
 
-aadd
-aadd2
-buffer
-changelog
-changelog.gz
-input.csv
-mycommand.1
-output.tab
-postinst
-tabular copy
-tabular.1
-tabular_iso.1
-tabularc.1
-tabularc.1.man
-test.csv
-test.txt
-testbash
-tests.py
+deb/debian/.debhelper
+deb/debian/files
+deb/debian/tabular.debhelper.log
+deb/debian/tabular.substvars
+deb/debian/debhelper-build-stamp
+deb/debian/tabular
+tabular_*_all.deb
+tabular_*_amd64.buildinfo
+tabular_*_amd64.changes
+tabular_*.dsc
+tabular_*.tar.xz
