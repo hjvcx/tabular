@@ -513,7 +513,10 @@ def rearrange_columns(row, fspec):
         for i in range(len(row)):
             row[i] = row[i].strip()
 
-    row += [''] * (len(fspec)-len(row))
+    if len(fspec) > len(row):
+        row += [''] * (len(fspec)-len(row))
+    elif len(row) > len(fspec):
+        fspec += [0] * (len(row)-len(fspec))
 
     aligns_is_empty = False if aligns else True
 
@@ -553,8 +556,8 @@ def rearrange_columns(row, fspec):
     i = 0
     try:
         for c in settings['fields']:
+            intc = [c, int(c[1:]), columns_dict[c], fields]
             if type(columns_dict[c]) == str:
-                intc = [c, int(c[1:]), columns_dict[c]]
                 if c[0] == 'r':
                     columns_dict[c] = columns_dict[c].rjust(fspec[int(c[1:])-1])
                     aligns.append('r') if aligns_is_empty else 0
@@ -628,9 +631,8 @@ def main():
             row = settings['input'].readline()
             if not row:
                 break
-            if settings['fields'] != 'f0':
-                row = split_row(row)
-                row = rearrange_columns(row, fspec_first)
+            row = split_row(row.rstrip('\n\r'))
+            row = rearrange_columns(row, fspec_first)
             write_row(fspec, row)
 
     if settings['borderline']:
