@@ -624,7 +624,7 @@ def main():
             write_mid(fspec)
 
     for row in rows:
-        write_row(fspec, row)
+        write_row(fspec, rearrange_columns(row, fspec))
 
     if settings['lines_inspect'] != 0:
         while True:
