@@ -537,6 +537,15 @@ def rearrange_columns(row, fspec):
 
     columns_dict = {}
 
+    for o in others_id:
+        if o < len(settings['names']):
+            if fspec[o] < len(settings['names'][o]):
+                fspec[o] = len(settings['names'][o])
+    for i in range(len(settings['names'])):
+        if i < len(fields):
+            if fspec[int(fields[i][1:])-1] < len(settings['names'][i]) and int(fields[i][1:]) != 0:
+                fspec[int(fields[i][1:])-1] = len(settings['names'][i])
+
     for f in fields:
         columns_dict[f] = ''
 
@@ -624,7 +633,7 @@ def main():
             write_mid(fspec)
 
     for row in rows:
-        write_row(fspec, rearrange_columns(row, fspec))
+        write_row(fspec, row)
 
     if settings['lines_inspect'] != 0:
         while True:
